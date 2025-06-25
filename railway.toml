@@ -10,4 +10,5 @@ restartPolicyMaxRetries = 10
 [deploy.envs]
 PORT = "5003"
 FLASK_ENV = "production"
-FLASK_DEBUG = "false" 
+FLASK_DEBUG = "false"
+PYTHONPATH = "." 
