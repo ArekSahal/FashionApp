@@ -1,6 +1,10 @@
 import openai
 import json
 from typing import List, Dict, Any, Optional
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), 'data_collection'))
+
 from search_function import (
     search_outfit, 
     CLOTHING_TYPES, 
@@ -14,9 +18,6 @@ from search_function import (
     get_available_combinations_for_clothing_type,
     validate_material_color_combination
 )
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from config import Config
 
 class OutfitPromptParser:

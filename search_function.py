@@ -9,7 +9,7 @@
 
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'data_collection'))
+sys.path.append(os.path.join(os.path.dirname(__file__), 'data_collection'))
 
 from supabase_db import SupabaseDB
 from zalando_scraper import (

@@ -51,7 +51,7 @@ def test_dominant_hue_field():
     print("\n🎨 Testing dominant_hue field...")
     try:
         import sys
-        sys.path.append(os.path.join(os.path.dirname(__file__), 'data_collection'))
+        sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'data_collection'))
         from supabase_db import SupabaseDB
         
         db_client = SupabaseDB()
@@ -274,7 +274,7 @@ def test_colors_by_clothing_type():
     
     try:
         import sys
-        sys.path.append(os.path.join(os.path.dirname(__file__), 'data_collection'))
+        sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'data_collection'))
         from supabase_db import SupabaseDB
         
         db_client = SupabaseDB()
