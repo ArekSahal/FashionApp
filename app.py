@@ -12,6 +12,10 @@ from config import Config
 import logging
 from datetime import datetime
 import traceback
+import os
+
+# Create logs directory if it doesn't exist
+os.makedirs('logs', exist_ok=True)
 
 # Configure logging for debugging
 logging.basicConfig(

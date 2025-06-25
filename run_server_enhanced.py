@@ -79,6 +79,10 @@ def main():
         print("🚀 STARTING FASHIONAPP AI SERVER")
         print("=" * 50)
         
+        # Create logs directory if it doesn't exist
+        os.makedirs('logs', exist_ok=True)
+        print("✅ Logs directory ready")
+        
         # Debug Railway environment
         debug_railway_environment()
         
