@@ -13,10 +13,13 @@ This guide will help you deploy your FashionApp on Railway using the provided co
 The following files have been created for Railway deployment:
 
 - `railway.toml` - Main Railway configuration
+- `nixpacks.toml` - Nixpacks build configuration (newer standard)
 - `Procfile` - Alternative deployment method
+- `start.sh` - Startup script
 - `.railwayignore` - Files to exclude from deployment
 - `runtime.txt` - Python version specification
 - Updated `ai_server/run_server.py` - Now uses PORT environment variable
+- Updated `requirements.txt` - Added missing Flask dependency
 
 ## Deployment Steps
 
@@ -50,7 +53,7 @@ FLASK_DEBUG=false
 
 1. Railway will automatically detect the configuration files
 2. The build process will install dependencies from `requirements.txt`
-3. The server will start using the command specified in `railway.toml`
+3. The server will start using the command specified in `nixpacks.toml`
 4. Railway will run health checks on the `/health` endpoint
 
 ### 4. Access Your App
@@ -93,6 +96,22 @@ curl -X POST https://your-app-name.railway.app/search_outfit \
 2. **App Won't Start**: Verify environment variables are set correctly
 3. **Health Check Fails**: Ensure the `/health` endpoint is working
 4. **Database Connection Issues**: Verify Supabase credentials
+
+### Nixpacks Build Issues
+
+If you encounter "No start command could be found" error:
+
+1. **Check Configuration Files**: Ensure all configuration files are committed to your repository
+2. **Multiple Start Methods**: The deployment uses multiple fallback methods:
+   - `nixpacks.toml` (primary)
+   - `Procfile` (fallback)
+   - `start.sh` script (alternative)
+3. **Dependencies**: Make sure `requirements.txt` includes Flask:
+   ```
+   flask>=2.3.0
+   flask-cors>=4.0.0
+   ```
+4. **File Permissions**: The `start.sh` script is made executable during build
 
 ### Logs
 
@@ -147,4 +166,5 @@ If you encounter issues:
 1. Check Railway's documentation
 2. Review the logs in Railway dashboard
 3. Verify all environment variables are set
-4. Test locally first to isolate issues 
+4. Test locally first to isolate issues
+5. Check that all configuration files are properly committed 
