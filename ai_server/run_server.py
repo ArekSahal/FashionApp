@@ -1,28 +1,23 @@
 #!/usr/bin/env python3
 """
-Entry point for the AI server.
-Starts the Flask server for outfit search API.
+FashionApp AI Server Runner
+
+This script starts the Flask server for the FashionApp AI service.
 """
 
-import sys
 import os
+from app import app
 
 def main():
-    print("🤖 FashionApp AI Server")
-    print("=" * 30)
-    print("Starting Flask server...")
-    print("Server will be available at: http://localhost:5003")
-    print("Press Ctrl+C to stop the server")
-    print("-" * 30)
-    
+    """Start the Flask server"""
     try:
-        from app import app
-        app.run(host='0.0.0.0', port=5003, debug=True)
+        # Get port from environment variable (Railway provides this)
+        port = int(os.environ.get('PORT', 5003))
+        app.run(host='0.0.0.0', port=port, debug=False)
     except KeyboardInterrupt:
-        print("\n👋 Server stopped.")
+        pass
     except Exception as e:
-        print(f"❌ Error starting server: {e}")
-        sys.exit(1)
+        pass
 
 if __name__ == "__main__":
     main() 

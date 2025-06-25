@@ -1,225 +1,153 @@
 #!/usr/bin/env python3
 """
-Example script demonstrating the detailed inventory system.
+Example demonstration of the detailed inventory system.
 
-This script shows how the new system provides detailed information about
-which materials and colors are available for each clothing type, including
-valid material-color combinations.
+This script shows how the detailed inventory system works
+without requiring a real database connection.
 """
 
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'data_collection'))
-
-def demonstrate_detailed_inventory_concept():
-    """
-    Demonstrate the concept of detailed inventory with sample data.
-    This shows what the system would provide to the AI model.
-    """
-    print("🎯 DETAILED INVENTORY SYSTEM DEMONSTRATION")
-    print("=" * 80)
-    
-    # Sample detailed inventory data (what would come from the database)
-    sample_detailed_inventory = {
-        "shirts": {
-            "materials": ["lin", "bomull", "polyester", "siden"],
-            "colors": ["BLUE", "WHITE", "BLACK", "BROWN", "BEIGE", "GRAY"],
-            "material_color_combinations": {
-                "lin": ["BLUE", "WHITE", "BEIGE", "BROWN"],
-                "bomull": ["WHITE", "BLACK", "BLUE", "GRAY"],
-                "polyester": ["BLACK", "GRAY", "BLUE"],
-                "siden": ["WHITE", "BLACK", "BLUE"]
-            },
-            "product_count": 45
+def create_sample_detailed_inventory():
+    """Create sample detailed inventory data for demonstration"""
+    return {
+        'shirts': {
+            'product_count': 45,
+            'materials': ['lin', 'bomull', 'polyester', 'siden'],
+            'colors': ['BLUE', 'WHITE', 'BLACK', 'RED', 'GREEN'],
+            'material_color_combinations': {
+                'lin': ['BLUE', 'WHITE', 'BEIGE', 'BROWN'],
+                'bomull': ['BLUE', 'WHITE', 'BLACK', 'RED', 'GREEN'],
+                'polyester': ['BLUE', 'BLACK', 'RED'],
+                'siden': ['BLUE', 'WHITE', 'BLACK']
+            }
         },
-        "pants": {
-            "materials": ["bomull", "lin", "polyester", "ull"],
-            "colors": ["BLACK", "BLUE", "BROWN", "GRAY", "BEIGE", "NAVY"],
-            "material_color_combinations": {
-                "bomull": ["BLACK", "BLUE", "BROWN", "GRAY", "NAVY"],
-                "lin": ["BEIGE", "BROWN", "BLUE"],
-                "polyester": ["BLACK", "GRAY", "BLUE"],
-                "ull": ["BLACK", "GRAY", "BROWN"]
-            },
-            "product_count": 38
+        'pants': {
+            'product_count': 32,
+            'materials': ['bomull', 'lin', 'polyester', 'denim'],
+            'colors': ['BLUE', 'BLACK', 'WHITE', 'BEIGE', 'GRAY'],
+            'material_color_combinations': {
+                'bomull': ['BLUE', 'BLACK', 'WHITE', 'BEIGE'],
+                'lin': ['BLUE', 'BEIGE', 'BROWN'],
+                'polyester': ['BLACK', 'BLUE', 'GRAY'],
+                'denim': ['BLUE', 'BLACK']
+            }
         },
-        "sweaters": {
-            "materials": ["ull", "bomull", "akryl", "kaschmir"],
-            "colors": ["BLACK", "GRAY", "BROWN", "BLUE", "RED", "GREEN", "BEIGE"],
-            "material_color_combinations": {
-                "ull": ["BLACK", "GRAY", "BROWN", "BLUE", "RED"],
-                "bomull": ["BLACK", "BLUE", "GRAY", "BEIGE"],
-                "akryl": ["BLACK", "GRAY", "BLUE", "RED"],
-                "kaschmir": ["BROWN", "GRAY", "BLACK"]
-            },
-            "product_count": 52
+        'sweaters': {
+            'product_count': 28,
+            'materials': ['ull', 'kaschmir', 'akryl', 'bomull'],
+            'colors': ['BLUE', 'BLACK', 'WHITE', 'GRAY', 'BROWN'],
+            'material_color_combinations': {
+                'ull': ['BLUE', 'BLACK', 'GRAY', 'BROWN'],
+                'kaschmir': ['BLUE', 'BLACK', 'GRAY'],
+                'akryl': ['BLUE', 'BLACK', 'WHITE'],
+                'bomull': ['BLUE', 'WHITE', 'BLACK']
+            }
         }
     }
+
+def format_detailed_inventory_for_ai(detailed_inventory):
+    """Format detailed inventory for AI consumption"""
+    formatted_lines = []
     
-    print("📊 Sample Detailed Inventory Data:")
-    print("This is what the system would provide to the AI model:")
-    
-    for clothing_type, data in sample_detailed_inventory.items():
-        print(f"\n👕 {clothing_type.upper()} ({data['product_count']} products):")
-        print(f"   🔧 Available materials: {', '.join(data['materials'])}")
-        print(f"   🎨 Available colors: {', '.join(data['colors'])}")
+    for clothing_type, data in detailed_inventory.items():
+        formatted_lines.append(f"\n{clothing_type.upper()}:")
+        formatted_lines.append(f"  Products: {data['product_count']}")
+        formatted_lines.append(f"  Materials: {', '.join(data['materials'])}")
+        formatted_lines.append(f"  Colors: {', '.join(data['colors'])}")
         
         if data['material_color_combinations']:
-            print(f"   🔗 Valid material-color combinations:")
+            formatted_lines.append("  Valid Material-Color Combinations:")
             for material, colors in data['material_color_combinations'].items():
-                if colors:
-                    print(f"      {material}: {', '.join(colors)}")
+                if colors:  # Only show materials that have colors
+                    formatted_lines.append(f"    {material}: {', '.join(colors)}")
     
-    return sample_detailed_inventory
+    return "\n".join(formatted_lines)
 
-def demonstrate_ai_prompt_with_detailed_inventory():
-    """
-    Demonstrate how the AI model would use the detailed inventory information.
-    """
-    print(f"\n🤖 AI PROMPT WITH DETAILED INVENTORY")
-    print("=" * 80)
-    
-    sample_inventory = demonstrate_detailed_inventory_concept()
-    
-    # Format the inventory for the AI model (like the _format_detailed_inventory_for_ai function)
-    formatted_inventory = ""
-    for clothing_type, data in sample_inventory.items():
-        formatted_inventory += f"\n{clothing_type.upper()} ({data['product_count']} products):\n"
-        formatted_inventory += f"  Available materials: {', '.join(data['materials'])}\n"
-        formatted_inventory += f"  Available colors: {', '.join(data['colors'])}\n"
-        
-        if data['material_color_combinations']:
-            formatted_inventory += f"  Material-Color combinations:\n"
-            for material, colors in data['material_color_combinations'].items():
-                if colors:
-                    formatted_inventory += f"    {material}: {', '.join(colors)}\n"
-        
-        formatted_inventory += "\n"
-    
-    print("📝 Formatted inventory that would be sent to the AI model:")
-    print(formatted_inventory)
-    
-    print("🎯 Example AI System Prompt:")
-    print("=" * 50)
-    system_prompt = f"""
-You are a fashion stylist. Convert natural language outfit descriptions into structured search parameters.
+def create_ai_system_prompt(detailed_inventory_text):
+    """Create AI system prompt with detailed inventory"""
+    return f"""You are an expert fashion stylist. Use ONLY the available inventory below:
 
-Available clothing types: shirts, pants, sweaters
-Available colors: BLUE, WHITE, BLACK, BROWN, BEIGE, GRAY, NAVY, RED, GREEN
-Available material building blocks: lin, bomull, polyester, siden, ull, akryl, kaschmir
+AVAILABLE INVENTORY:
+{detailed_inventory_text}
 
-DETAILED INVENTORY BY CLOTHING TYPE:
-{formatted_inventory}
+RULES:
+1. Only suggest clothing types that exist in the inventory
+2. Only suggest colors that exist for each clothing type
+3. Only suggest material-color combinations that are valid
+4. If a combination doesn't exist, either omit the material or choose a different color
 
-CRITICAL RULES:
-- Use only exact clothing type names from the list above
-- Use only exact color names from the list above  
-- Use only exact material building block names from the list above
-- ALWAYS check the detailed inventory above to ensure material-color combinations actually exist
-- ONLY use material-color combinations that are listed in the detailed inventory above
+EXAMPLE VALID SUGGESTIONS:
+- "Blue linen shirts" ✅ (lin + BLUE exists for shirts)
+- "White cotton pants" ✅ (bomull + WHITE exists for pants)
+- "Black wool sweaters" ✅ (ull + BLACK exists for sweaters)
 
-For each outfit description:
-1. Identify key clothing items needed
-2. Check the detailed inventory to see what materials and colors are available for each clothing type
-3. Choose materials and colors that have valid combinations in the inventory
-4. Generate a clear outfit description
-"""
-    
-    print(system_prompt)
+EXAMPLE INVALID SUGGESTIONS:
+- "Red linen shirts" ❌ (lin + RED doesn't exist for shirts)
+- "Silk pants" ❌ (siden doesn't exist for pants)
+- "Green cashmere sweaters" ❌ (kaschmir + GREEN doesn't exist for sweaters)"""
 
-def demonstrate_validation_examples():
-    """
-    Demonstrate how the validation system would work.
-    """
-    print(f"\n✅ VALIDATION EXAMPLES")
-    print("=" * 80)
+def validate_material_color_combination(detailed_inventory, clothing_type, material, color):
+    """Validate if a material-color combination exists"""
+    if clothing_type not in detailed_inventory:
+        return False, f"Clothing type '{clothing_type}' not found"
     
-    sample_inventory = demonstrate_detailed_inventory_concept()
+    data = detailed_inventory[clothing_type]
     
-    # Test combinations
-    test_combinations = [
-        ("shirts", "lin", "BLUE"),      # ✅ Valid
-        ("shirts", "lin", "RED"),       # ❌ Invalid (RED not available for lin in shirts)
-        ("pants", "bomull", "BLACK"),   # ✅ Valid
-        ("sweaters", "ull", "GRAY"),    # ✅ Valid
-        ("shirts", "ull", "BLACK"),     # ❌ Invalid (ull not available for shirts)
-        ("nonexistent", "lin", "BLUE"), # ❌ Invalid (clothing type doesn't exist)
-    ]
+    if material not in data['materials']:
+        return False, f"Material '{material}' not available for {clothing_type}"
     
-    print("🔍 Testing material-color combinations:")
-    for clothing_type, material, color in test_combinations:
-        # Simulate validation logic
-        is_valid = False
-        
-        if clothing_type in sample_inventory:
-            clothing_data = sample_inventory[clothing_type]
-            
-            # Check if material exists for this clothing type
-            if material in clothing_data['materials']:
-                # Check if color exists for this clothing type
-                if color in clothing_data['colors']:
-                    # Check if the specific combination exists
-                    material_combinations = clothing_data['material_color_combinations']
-                    if material in material_combinations and color in material_combinations[material]:
-                        is_valid = True
-        
-        status = "✅ Valid" if is_valid else "❌ Invalid"
-        reason = ""
-        if not is_valid:
-            if clothing_type not in sample_inventory:
-                reason = " (clothing type doesn't exist)"
-            elif material not in sample_inventory[clothing_type]['materials']:
-                reason = " (material not available for this clothing type)"
-            elif color not in sample_inventory[clothing_type]['colors']:
-                reason = " (color not available for this clothing type)"
-            else:
-                reason = " (combination doesn't exist)"
-        
-        print(f"   {clothing_type} + {material} + {color}: {status}{reason}")
+    if color not in data['colors']:
+        return False, f"Color '{color}' not available for {clothing_type}"
+    
+    if material in data['material_color_combinations']:
+        if color in data['material_color_combinations'][material]:
+            return True, "Valid combination"
+        else:
+            return False, f"Material '{material}' not available in color '{color}' for {clothing_type}"
+    
+    return False, f"Material '{material}' has no color combinations defined for {clothing_type}"
 
-def demonstrate_benefits():
-    """
-    Demonstrate the benefits of the detailed inventory system.
-    """
-    print(f"\n🎯 BENEFITS OF THE DETAILED INVENTORY SYSTEM")
-    print("=" * 80)
-    
-    benefits = [
-        "✅ Prevents AI from selecting non-existent material-color combinations",
-        "✅ Ensures all generated outfits can actually be found in the database",
-        "✅ Provides real-time inventory information to the AI model",
-        "✅ Reduces failed searches and improves user experience",
-        "✅ Allows for more accurate and relevant outfit recommendations",
-        "✅ Enables the AI to make informed decisions about what's available",
-        "✅ Supports dynamic inventory updates as new products are added",
-        "✅ Provides granular control over what combinations are valid"
-    ]
-    
-    for benefit in benefits:
-        print(f"   {benefit}")
-    
-    print(f"\n📊 Example Problem Solved:")
-    print("   Before: AI might suggest 'red linen shirts' even if no red linen shirts exist")
-    print("   After: AI knows that linen shirts are only available in BLUE, WHITE, BEIGE, BROWN")
-    print("   Result: All generated outfits are guaranteed to have matching products")
-
-def main():
-    """Run the demonstration."""
+def demonstrate_system():
+    """Demonstrate the detailed inventory system"""
     try:
-        demonstrate_detailed_inventory_concept()
-        demonstrate_ai_prompt_with_detailed_inventory()
-        demonstrate_validation_examples()
-        demonstrate_benefits()
+        # Create sample data
+        detailed_inventory = create_sample_detailed_inventory()
         
-        print(f"\n🎉 DEMONSTRATION COMPLETE!")
-        print("=" * 80)
-        print("This shows how the detailed inventory system solves the problem")
-        print("of AI selecting non-existent material-color combinations.")
-        print("\nTo test with real data, set your SUPABASE_KEY environment variable")
-        print("and run: python test_detailed_inventory.py")
+        # Format for AI
+        formatted_inventory = format_detailed_inventory_for_ai(detailed_inventory)
+        
+        # Create AI system prompt
+        system_prompt = create_ai_system_prompt(formatted_inventory)
+        
+        # Test some combinations
+        test_combinations = [
+            ('shirts', 'lin', 'BLUE'),
+            ('shirts', 'lin', 'RED'),
+            ('pants', 'bomull', 'WHITE'),
+            ('pants', 'siden', 'BLUE'),
+            ('sweaters', 'ull', 'BLACK'),
+            ('sweaters', 'kaschmir', 'GREEN')
+        ]
+        
+        results = []
+        for clothing_type, material, color in test_combinations:
+            is_valid, reason = validate_material_color_combination(detailed_inventory, clothing_type, material, color)
+            results.append({
+                'clothing_type': clothing_type,
+                'material': material,
+                'color': color,
+                'valid': is_valid,
+                'reason': reason
+            })
+        
+        return {
+            'detailed_inventory': detailed_inventory,
+            'formatted_inventory': formatted_inventory,
+            'system_prompt': system_prompt,
+            'test_results': results
+        }
         
     except Exception as e:
-        print(f"❌ Error in demonstration: {e}")
+        return {'error': str(e)}
 
 if __name__ == "__main__":
-    main() 
+    demonstrate_system() 

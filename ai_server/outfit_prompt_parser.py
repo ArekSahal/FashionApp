@@ -46,12 +46,6 @@ class OutfitPromptParser:
         # Get detailed inventory by clothing type
         self.detailed_inventory = get_detailed_inventory_by_clothing_type()
         
-        print(f"🔧 Loaded database inventory:")
-        print(f"   👕 Clothing Types: {len(self.clothing_types)}")
-        print(f"   🎨 Colors: {len(self.colors)}")
-        print(f"   🔧 Material Building Blocks: {len(self.available_materials)}")
-        print(f"   📊 Detailed inventory for {len(self.detailed_inventory)} clothing types")
-        
     def parse_outfit_prompt(self, prompt: str, max_items_per_category: int = 5, max_retries: int = 3) -> dict:
         """
         Parse a natural language outfit description into structured search parameters.
@@ -80,8 +74,6 @@ class OutfitPromptParser:
         
         for attempt in range(max_retries):
             try:
-                print(f"\n🔄 Attempt {attempt + 1}/{max_retries} to parse outfit prompt...")
-                
                 system_prompt = self._create_system_prompt(detailed_inventory_text, max_items_per_category, attempt)
                 
                 response = self.client.chat.completions.create(
@@ -108,120 +100,29 @@ class OutfitPromptParser:
                 
                 content = content.strip()
                 
-                # Comprehensive OpenAI API response check
-                print(f"\n🔍 COMPREHENSIVE OPENAI API RESPONSE CHECK:")
-                print(f"=" * 60)
-                
-                # Check response object structure
-                print(f"📋 Response Object Type: {type(response)}")
-                print(f"📋 Response Object Keys: {list(response.__dict__.keys()) if hasattr(response, '__dict__') else 'No __dict__'}")
-                
-                # Check if response has required attributes
-                if hasattr(response, 'choices'):
-                    print(f"✅ Response has 'choices' attribute")
-                    print(f"📊 Number of choices: {len(response.choices)}")
-                    
-                    for i, choice in enumerate(response.choices):
-                        print(f"   Choice {i}:")
-                        print(f"     Type: {type(choice)}")
-                        print(f"     Keys: {list(choice.__dict__.keys()) if hasattr(choice, '__dict__') else 'No __dict__'}")
-                        
-                        if hasattr(choice, 'message'):
-                            print(f"     ✅ Choice has 'message' attribute")
-                            message = choice.message
-                            print(f"     Message type: {type(message)}")
-                            print(f"     Message keys: {list(message.__dict__.keys()) if hasattr(message, '__dict__') else 'No __dict__'}")
-                            
-                            if hasattr(message, 'content'):
-                                print(f"     ✅ Message has 'content' attribute")
-                                print(f"     Content type: {type(message.content)}")
-                                print(f"     Content length: {len(message.content) if message.content else 0}")
-                                print(f"     Content preview: {message.content[:200] if message.content else 'None'}...")
-                            else:
-                                print(f"     ❌ Message missing 'content' attribute")
-                        else:
-                            print(f"     ❌ Choice missing 'message' attribute")
-                else:
-                    print(f"❌ Response missing 'choices' attribute")
-                
-                # Check usage information
-                if hasattr(response, 'usage'):
-                    print(f"📊 Usage Information:")
-                    usage = response.usage
-                    print(f"   Usage type: {type(usage)}")
-                    print(f"   Usage keys: {list(usage.__dict__.keys()) if hasattr(usage, '__dict__') else 'No __dict__'}")
-                    if hasattr(usage, 'prompt_tokens'):
-                        print(f"   Prompt tokens: {usage.prompt_tokens}")
-                    if hasattr(usage, 'completion_tokens'):
-                        print(f"   Completion tokens: {usage.completion_tokens}")
-                    if hasattr(usage, 'total_tokens'):
-                        print(f"   Total tokens: {usage.total_tokens}")
-                else:
-                    print(f"⚠️  No usage information available")
-                
-                # Check model information
-                if hasattr(response, 'model'):
-                    print(f"🤖 Model used: {response.model}")
-                else:
-                    print(f"⚠️  No model information available")
-                
-                # Check for any error information
-                if hasattr(response, 'error'):
-                    print(f"❌ Error in response: {response.error}")
-                
-                # Final content check
-                print(f"\n📝 FINAL CONTENT ANALYSIS:")
-                print(f"Raw content: {repr(content)}")
-                print(f"Content length: {len(content)}")
-                print(f"Content starts with: {content[:50] if content else 'None'}")
-                print(f"Content ends with: {content[-50:] if content else 'None'}")
-                
-                # Check if content looks like JSON
-                content_stripped = content.strip()
-                if content_stripped.startswith('{') and content_stripped.endswith('}'):
-                    print(f"✅ Content appears to be JSON (starts with {{ and ends with }})")
-                elif content_stripped.startswith('[') and content_stripped.endswith(']'):
-                    print(f"✅ Content appears to be JSON array (starts with [ and ends with ])")
-                else:
-                    print(f"⚠️  Content doesn't appear to be JSON format")
-                    print(f"   First 100 chars: {content[:100]}")
-                    print(f"   Last 100 chars: {content[-100:]}")
-                
-                print(f"=" * 60)
-                
                 # Parse the JSON response
                 parsed_response = json.loads(content)
                 
                 # Validate the response
                 self._validate_outfit_items(parsed_response)
                 
-                print(f"✅ Successfully parsed and validated outfit prompt on attempt {attempt + 1}")
                 return parsed_response
                 
             except json.JSONDecodeError as e:
-                print(f"❌ JSON decode error on attempt {attempt + 1}: {e}")
                 if attempt == max_retries - 1:
-                    raise ValueError(f"Failed to parse OpenAI response as JSON after {max_retries} attempts: {e}")
-                continue
-                
-            except ValueError as e:
-                print(f"❌ Validation error on attempt {attempt + 1}: {e}")
-                if attempt == max_retries - 1:
-                    raise e
-                # Continue to next attempt with enhanced prompt
+                    raise ValueError(f"Failed to parse JSON response after {max_retries} attempts: {e}")
                 continue
                 
             except Exception as e:
-                print(f"❌ Unexpected error on attempt {attempt + 1}: {e}")
                 if attempt == max_retries - 1:
-                    raise Exception(f"OpenAI API error after {max_retries} attempts: {e}")
+                    raise ValueError(f"Failed to parse outfit prompt after {max_retries} attempts: {e}")
                 continue
         
-        raise Exception(f"Failed to parse outfit prompt after {max_retries} attempts")
-    
+        raise ValueError(f"Failed to parse outfit prompt after {max_retries} attempts")
+
     def _create_system_prompt(self, detailed_inventory_text: str, max_items_per_category: int, attempt: int = 0) -> str:
         """
-        Create the system prompt with validation instructions.
+        Create the system prompt for the OpenAI API.
         
         Args:
             detailed_inventory_text (str): Formatted detailed inventory information
@@ -229,153 +130,96 @@ class OutfitPromptParser:
             attempt (int): Current attempt number (for retry logic)
             
         Returns:
-            str: System prompt
+            str: System prompt for the AI model
         """
-        # Add retry-specific instructions if this is not the first attempt
-        retry_instructions = ""
-        if attempt > 0:
-            retry_instructions = f"""
-
-IMPORTANT - THIS IS ATTEMPT {attempt + 1}:
-The previous attempt failed validation because it used material-color combinations that don't exist in the database.
-Please be EXTRA CAREFUL to only use combinations that are explicitly listed in the detailed inventory above.
-Double-check every material-color combination before including it in your response.
-"""
         
-        return f"""
-You are a fashion stylist. Convert natural language outfit descriptions into THREE UNIQUE outfit variations with structured search parameters.
+        # Base system prompt
+        system_prompt = f"""You are an expert fashion stylist and outfit planner. Your task is to parse natural language outfit descriptions into structured search parameters.
 
-Available clothing types (use these exact names): {', '.join(self.clothing_types)}
-Available colors (use these exact names): {', '.join(self.colors)}
-Available material building blocks (use these exact names): {', '.join(self.available_materials)}
-
-DETAILED INVENTORY BY CLOTHING TYPE:
+AVAILABLE INVENTORY:
 {detailed_inventory_text}
 
-CRITICAL VALIDATION RULES - READ CAREFULLY:
-1. Do not include shoes
-2. Use only exact clothing type names from the clothing types list above
-3. Use only exact color names from the colors list above
-4. Use only exact material building block names from the materials list above
-5. ALWAYS check the detailed inventory above to ensure material-color combinations actually exist
-6. Use "q" parameter only for specific clothing types (e.g., "chino", "box-shirt", "short sleeve")
-7. Do not use "style" parameter in filters
-8. Create THREE DISTINCT outfit variations that interpret the prompt differently
-9. Each outfit should have a unique style approach, color palette, or clothing combination
-10. For materials, use the building block names (e.g., "lin", "bomull", "ull") - these will match partial material strings like "55% lin, 45% bomull"
-11. ONLY use material-color combinations that are listed in the detailed inventory above
-12. If a material-color combination is not listed in the detailed inventory, DO NOT use it - choose a different combination that exists
-13. The system will automatically reject any outfit that uses non-existent combinations, so be very careful
+AVAILABLE CLOTHING TYPES: {', '.join(self.clothing_types)}
+AVAILABLE COLORS: {', '.join(self.colors)}
+AVAILABLE MATERIAL BUILDING BLOCKS: {', '.join(self.available_materials)}
 
-VALIDATION PROCESS:
-- Before suggesting any material-color combination, check the detailed inventory
-- Look for the clothing type in the inventory
-- Check if the material is listed for that clothing type
-- Check if the color is listed for that clothing type  
-- Check if the specific material-color combination exists
-- If any of these checks fail, choose a different combination that exists
+TASK:
+Parse the user's outfit description into a structured format that can be used to search for clothing items.
 
-{retry_instructions}
+REQUIREMENTS:
+1. Use ONLY clothing types from the available list: {', '.join(self.clothing_types)}
+2. Use ONLY colors from the available list: {', '.join(self.colors)}
+3. Use ONLY material building blocks from the available list: {', '.join(self.available_materials)}
+4. Maximum {max_items_per_category} items per clothing category
+5. Ensure all material-color combinations exist in the detailed inventory
+6. Create multiple outfit variations if the description suggests different styles
 
-For each outfit description:
-1. Identify key clothing items needed (excluding shoes)
-2. Check the detailed inventory to see what materials and colors are available for each clothing type
-3. Choose materials and colors that have valid combinations in the inventory
-4. Use "q" parameter only for specific clothing types
-5. Generate a clear outfit description for each variation
-
-Return JSON with this structure:
+OUTPUT FORMAT:
+Return a JSON object with this exact structure:
 {{
-    "outfit_description": "Overall description of the style direction and how the three variations interpret the prompt",
+    "outfit_description": "A brief description of the envisioned outfit",
     "outfit_variations": [
         {{
-            "variation_name": "Name for this outfit variation (e.g., 'Classic Elegant', 'Modern Casual', 'Bold Statement')",
-            "variation_description": "Description of this specific outfit variation",
+            "variation_name": "Name of this variation",
+            "variation_description": "Description of this variation",
             "outfit_items": [
                 {{
-                    "clothing_type": "shirts",
-                    "color": "BROWN",
-                    "filters": {{"material": "lin", "q": "short sleeve"}},
-                    "max_items": {max_items_per_category}
+                    "clothing_type": "one of the available clothing types",
+                    "color": "one of the available colors or null",
+                    "filters": {{
+                        "material": "one of the available material building blocks or null",
+                        "price_min": "minimum price or null",
+                        "price_max": "maximum price or null"
+                    }}
                 }}
             ]
         }}
     ]
 }}
 
-Example input: "old money summer vibe with deep autumn colors"
-Example output: {{
-    "outfit_description": "Three sophisticated summer outfit interpretations of the old money aesthetic, each featuring deep autumn colors but with distinct approaches: classic elegance, modern refinement, and bold sophistication.",
+VALIDATION RULES:
+1. Every clothing_type must be from the available list
+2. Every color must be from the available list or null
+3. Every material must be from the available list or null
+4. Material-color combinations must exist in the detailed inventory
+5. Create at least 1 variation, maximum 3 variations
+6. Each variation should have 2-5 outfit items
+
+EXAMPLE:
+For the prompt "casual summer outfit with linen shirts and blue pants", you might return:
+{{
+    "outfit_description": "A casual summer outfit featuring breathable linen shirts and comfortable blue pants",
     "outfit_variations": [
         {{
-            "variation_name": "Classic Elegant",
-            "variation_description": "A timeless summer outfit featuring a refined linen shirt in warm brown tones paired with beige chino pants, creating a sophisticated and polished look perfect for summer events.",
+            "variation_name": "Casual Summer Linen",
+            "variation_description": "Light and breathable summer outfit with linen shirts and blue pants",
             "outfit_items": [
                 {{
                     "clothing_type": "shirts",
-                    "color": "BROWN",
-                    "filters": {{"material": "lin", "q": "short sleeve"}},
-                    "max_items": {max_items_per_category}
+                    "color": "BLUE",
+                    "filters": {{"material": "lin"}}
                 }},
                 {{
                     "clothing_type": "pants",
-                    "color": "BEIGE",
-                    "filters": {{"material": "lin", "q": "chino"}},
-                    "max_items": {max_items_per_category}
-                }}
-            ]
-        }},
-        {{
-            "variation_name": "Modern Refined",
-            "variation_description": "A contemporary take on old money style with a structured blazer in deep olive paired with a crisp white shirt and tailored trousers, offering a sophisticated business-casual approach.",
-            "outfit_items": [
-                {{
-                    "clothing_type": "shirts",
-                    "color": "WHITE",
-                    "filters": {{"material": "bomull", "q": "oxford"}},
-                    "max_items": {max_items_per_category}
-                }},
-                {{
-                    "clothing_type": "jackets",
-                    "color": "OLIVE",
-                    "filters": {{"material": "bomull"}},
-                    "max_items": {max_items_per_category}
-                }},
-                {{
-                    "clothing_type": "pants",
-                    "color": "BROWN",
-                    "filters": {{"material": "bomull"}},
-                    "max_items": {max_items_per_category}
-                }}
-            ]
-        }},
-        {{
-            "variation_name": "Bold Sophistication",
-            "variation_description": "A statement-making outfit with a deep burgundy sweater paired with charcoal trousers, creating a rich, luxurious look that embodies old money confidence.",
-            "outfit_items": [
-                {{
-                    "clothing_type": "sweaters",
-                    "color": "RED",
-                    "filters": {{"material": "ull"}},
-                    "max_items": {max_items_per_category}
-                }},
-                {{
-                    "clothing_type": "pants",
-                    "color": "GRAY",
-                    "filters": {{"material": "bomull"}},
-                    "max_items": {max_items_per_category}
+                    "color": "BLUE",
+                    "filters": {{"material": "bomull"}}
                 }}
             ]
         }}
     ]
 }}
 
-Return ONLY the JSON object, no additional text.
-"""
+IMPORTANT: Only use items that exist in the detailed inventory. If a material-color combination doesn't exist, either omit the material filter or choose a different color that works with that material."""
+
+        # Add retry-specific instructions
+        if attempt > 0:
+            system_prompt += f"\n\nRETRY ATTEMPT {attempt + 1}: Please be more careful with validation. Ensure all combinations exist in the inventory."
+        
+        return system_prompt
 
     def _format_detailed_inventory_for_ai(self) -> str:
         """
-        Format the detailed inventory information for the AI model in a readable format.
+        Format the detailed inventory information for the AI model.
         
         Returns:
             str: Formatted inventory information
@@ -383,298 +227,223 @@ Return ONLY the JSON object, no additional text.
         if not self.detailed_inventory:
             return "No detailed inventory available."
         
-        formatted_text = ""
-        
+        formatted_lines = []
         for clothing_type, data in self.detailed_inventory.items():
-            formatted_text += f"\n{clothing_type.upper()} ({data['product_count']} products):\n"
-            formatted_text += f"  Available materials: {', '.join(data['materials'])}\n"
-            formatted_text += f"  Available colors: {', '.join(data['colors'])}\n"
+            formatted_lines.append(f"\n{clothing_type.upper()}:")
+            formatted_lines.append(f"  Products: {data['product_count']}")
+            formatted_lines.append(f"  Materials: {', '.join(data['materials'])}")
+            formatted_lines.append(f"  Colors: {', '.join(data['colors'])}")
             
             if data['material_color_combinations']:
-                formatted_text += f"  Material-Color combinations:\n"
+                formatted_lines.append("  Valid Material-Color Combinations:")
                 for material, colors in data['material_color_combinations'].items():
                     if colors:  # Only show materials that have colors
-                        formatted_text += f"    {material}: {', '.join(colors)}\n"
-            
-            formatted_text += "\n"
+                        formatted_lines.append(f"    {material}: {', '.join(colors)}")
         
-        return formatted_text
+        return "\n".join(formatted_lines)
 
     def _validate_outfit_items(self, response: dict) -> None:
         """
-        Validate the outfit response returned by OpenAI.
+        Validate the parsed outfit items against available inventory.
         
         Args:
-            response (dict): Response dictionary containing outfit_description and outfit_items
+            response (dict): Parsed response from OpenAI API
             
         Raises:
             ValueError: If validation fails
         """
         if not isinstance(response, dict):
-            raise ValueError("Response must be a dictionary with outfit_description and outfit_items")
+            raise ValueError("Response must be a dictionary")
         
-        # Validate outfit_description
         if 'outfit_description' not in response:
-            raise ValueError("Response missing 'outfit_description' field")
+            raise ValueError("Response must contain 'outfit_description'")
         
-        if not isinstance(response['outfit_description'], str):
-            raise ValueError("'outfit_description' must be a string")
-        
-        if not response['outfit_description'].strip():
-            raise ValueError("'outfit_description' cannot be empty")
-        
-        # Validate outfit_items
         if 'outfit_variations' not in response:
-            raise ValueError("Response missing 'outfit_variations' field")
+            raise ValueError("Response must contain 'outfit_variations'")
         
-        outfit_variations = response['outfit_variations']
-        
-        if not isinstance(outfit_variations, list):
+        if not isinstance(response['outfit_variations'], list):
             raise ValueError("'outfit_variations' must be a list")
         
-        for i, variation in enumerate(outfit_variations):
+        if len(response['outfit_variations']) == 0:
+            raise ValueError("At least one outfit variation is required")
+        
+        if len(response['outfit_variations']) > 3:
+            raise ValueError("Maximum 3 outfit variations allowed")
+        
+        for variation_index, variation in enumerate(response['outfit_variations']):
             if not isinstance(variation, dict):
-                raise ValueError(f"Variation {i} must be a dictionary")
+                raise ValueError(f"Variation {variation_index} must be a dictionary")
             
-            # Check required fields
             if 'variation_name' not in variation:
-                raise ValueError(f"Variation {i} missing 'variation_name' field")
+                raise ValueError(f"Variation {variation_index} must contain 'variation_name'")
             
             if 'variation_description' not in variation:
-                raise ValueError(f"Variation {i} missing 'variation_description' field")
+                raise ValueError(f"Variation {variation_index} must contain 'variation_description'")
             
             if 'outfit_items' not in variation:
-                raise ValueError(f"Variation {i} missing 'outfit_items' field")
+                raise ValueError(f"Variation {variation_index} must contain 'outfit_items'")
             
-            outfit_items = variation['outfit_items']
+            if not isinstance(variation['outfit_items'], list):
+                raise ValueError(f"'outfit_items' in variation {variation_index} must be a list")
             
-            if not isinstance(outfit_items, list):
-                raise ValueError(f"Variation {i} 'outfit_items' must be a list")
+            if len(variation['outfit_items']) == 0:
+                raise ValueError(f"Variation {variation_index} must have at least one outfit item")
             
-            for j, item in enumerate(outfit_items):
+            if len(variation['outfit_items']) > 5:
+                raise ValueError(f"Variation {variation_index} cannot have more than 5 outfit items")
+            
+            for item_index, item in enumerate(variation['outfit_items']):
                 if not isinstance(item, dict):
-                    raise ValueError(f"Item {j} in variation {i} must be a dictionary")
+                    raise ValueError(f"Item {item_index} in variation {variation_index} must be a dictionary")
                 
-                # Check required fields
                 if 'clothing_type' not in item:
-                    raise ValueError(f"Item {j} in variation {i} missing 'clothing_type' field")
+                    raise ValueError(f"Item {item_index} in variation {variation_index} must contain 'clothing_type'")
                 
                 # Validate clothing type
                 if item['clothing_type'] not in self.clothing_types:
-                    raise ValueError(f"Item {j} in variation {i} has invalid clothing_type: {item['clothing_type']}. Must be one of: {', '.join(self.clothing_types)}")
+                    raise ValueError(f"Invalid clothing type '{item['clothing_type']}' in item {item_index} of variation {variation_index}. Must be one of: {', '.join(self.clothing_types)}")
                 
                 # Validate color if present
-                if 'color' in item and item['color']:
+                if 'color' in item and item['color'] is not None:
                     if item['color'] not in self.colors:
-                        raise ValueError(f"Item {j} in variation {i} has invalid color: {item['color']}. Must be one of: {', '.join(self.colors)}")
-                
-                # Validate materials in filters if present
-                if 'filters' in item and isinstance(item['filters'], dict):
-                    for material_key in ['material', 'upper_material']:
-                        if material_key in item['filters'] and item['filters'][material_key]:
-                            material_value = item['filters'][material_key]
-                            if material_value not in self.available_materials:
-                                raise ValueError(f"Item {j} in variation {i} has invalid material '{material_value}' in {material_key}. Must be one of: {', '.join(self.available_materials)}")
-                    
-                    # Reject style parameter - should use q instead
-                    if 'style' in item['filters']:
-                        raise ValueError(f"Item {j} in variation {i} uses 'style' parameter in filters. Use 'q' parameter for specific clothing types instead.")
-                    
-                    # Validate q parameter usage
-                    if 'q' in item['filters']:
-                        q_value = item['filters']['q']
-                        # List of style descriptors that should NOT be used in q parameter
-                        style_descriptors = [
-                            'casual', 'minimalistic', 'elegant', 'formal', 'sophisticated', 
-                            'trendy', 'classic', 'modern', 'vintage', 'streetwear', 'business',
-                            'old money', 'scandinavian', 'minimalist', 'chic', 'stylish',
-                            'fashionable', 'trendy', 'contemporary', 'traditional'
-                        ]
-                        
-                        if q_value.lower() in [desc.lower() for desc in style_descriptors]:
-                            raise ValueError(f"Item {j} in variation {i} uses style descriptor '{q_value}' in q parameter. The q parameter should only be used for specific clothing types (e.g., 'chino', 'box-shirt', 'short sleeve'), not style descriptors.")
+                        raise ValueError(f"Invalid color '{item['color']}' in item {item_index} of variation {variation_index}. Must be one of: {', '.join(self.colors)}")
                 
                 # Validate filters if present
-                if 'filters' in item and not isinstance(item['filters'], dict):
-                    raise ValueError(f"Item {j} in variation {i} 'filters' must be a dictionary")
-                
-                # CRITICAL: Validate material-color combinations exist in database
-                self._validate_material_color_combination_exists(item, i, j)
-    
+                if 'filters' in item and item['filters'] is not None:
+                    if not isinstance(item['filters'], dict):
+                        raise ValueError(f"'filters' in item {item_index} of variation {variation_index} must be a dictionary")
+                    
+                    # Validate material if present
+                    if 'material' in item['filters'] and item['filters']['material'] is not None:
+                        if item['filters']['material'] not in self.available_materials:
+                            raise ValueError(f"Invalid material '{item['filters']['material']}' in item {item_index} of variation {variation_index}. Must be one of: {', '.join(self.available_materials)}")
+                        
+                        # Validate material-color combination exists
+                        self._validate_material_color_combination_exists(item, variation_index, item_index)
+
     def _validate_material_color_combination_exists(self, item: dict, variation_index: int, item_index: int) -> None:
         """
-        Validate that the material-color combination actually exists in the database.
+        Validate that a material-color combination exists in the detailed inventory.
         
         Args:
-            item (dict): The outfit item to validate
-            variation_index (int): Index of the variation for error reporting
-            item_index (int): Index of the item for error reporting
+            item (dict): Outfit item to validate
+            variation_index (int): Index of the variation
+            item_index (int): Index of the item
             
         Raises:
             ValueError: If the combination doesn't exist
         """
-        clothing_type = item.get('clothing_type')
+        clothing_type = item['clothing_type']
+        material = item['filters'].get('material')
         color = item.get('color')
-        filters = item.get('filters', {})
         
-        # Get material from filters
-        material = filters.get('material') or filters.get('upper_material')
-        
-        # If we have both material and color, validate the combination
-        if material and color and clothing_type:
-            # Check if this clothing type exists in detailed inventory
-            if clothing_type not in self.detailed_inventory:
-                raise ValueError(f"Item {item_index} in variation {variation_index} references clothing type '{clothing_type}' which is not in the detailed inventory. Available types: {', '.join(self.detailed_inventory.keys())}")
-            
-            clothing_data = self.detailed_inventory[clothing_type]
-            
-            # Check if material exists for this clothing type
-            if material not in clothing_data['materials']:
-                available_materials = ', '.join(clothing_data['materials'])
-                raise ValueError(f"Item {item_index} in variation {variation_index} uses material '{material}' for {clothing_type}, but this material is not available. Available materials for {clothing_type}: {available_materials}")
-            
-            # Check if color exists for this clothing type
-            if color not in clothing_data['colors']:
-                available_colors = ', '.join(clothing_data['colors'])
-                raise ValueError(f"Item {item_index} in variation {variation_index} uses color '{color}' for {clothing_type}, but this color is not available. Available colors for {clothing_type}: {available_colors}")
-            
-            # Check if the specific material-color combination exists
-            material_combinations = clothing_data['material_color_combinations']
-            if material not in material_combinations:
-                raise ValueError(f"Item {item_index} in variation {variation_index} uses material '{material}' for {clothing_type}, but no material-color combinations are available for this material.")
-            
-            if color not in material_combinations[material]:
-                available_colors_for_material = ', '.join(material_combinations[material])
-                raise ValueError(f"Item {item_index} in variation {variation_index} uses material '{material}' with color '{color}' for {clothing_type}, but this combination doesn't exist. Available colors for {material} in {clothing_type}: {available_colors_for_material}")
-            
-            print(f"✅ Validated combination: {clothing_type} + {material} + {color} exists in database")
+        if material and color:
+            is_valid = validate_material_color_combination(clothing_type, material, color)
+            if not is_valid:
+                raise ValueError(f"Material-color combination '{material}' + '{color}' for '{clothing_type}' does not exist in inventory (item {item_index} in variation {variation_index})")
 
     def search_outfit_from_prompt(self, prompt: str, top_results_per_item: int = 1, 
                                  sort_by_price: bool = True, price_order: str = 'asc') -> Dict[str, List]:
         """
-        Parse a prompt and search for multiple outfit variations in one step.
+        Search for an outfit based on a natural language prompt.
         
         Args:
             prompt (str): Natural language outfit description
-            top_results_per_item (int): Number of top results to return per item (should be 1 for distinct outfits)
-            sort_by_price (bool): Whether to sort results by price
-            price_order (str): Sort order for price ('asc' or 'desc')
+            top_results_per_item (int): Number of top results per item
+            sort_by_price (bool): Whether to sort by price
+            price_order (str): Sort order ('asc' or 'desc')
             
         Returns:
-            Dict[str, List]: Dictionary with outfit variation names as keys and lists of products as values
+            Dict[str, List]: Dictionary with variation names as keys and search results as values
         """
-        print(f"Parsing prompt: '{prompt}'")
+        # Parse the prompt
+        outfit_response = self.parse_outfit_prompt(prompt, max_items_per_category=top_results_per_item)
         
-        # Parse the prompt into outfit variations
-        outfit_response = self.parse_outfit_prompt(prompt)
-        
-        # Display the outfit description
-        print(f"\n🎨 Outfit Vision:")
-        print(f"   {outfit_response['outfit_description']}")
-        
-        print(f"\nGenerated {len(outfit_response['outfit_variations'])} outfit variations:")
-        for i, variation in enumerate(outfit_response['outfit_variations'], 1):
-            print(f"  {i}. {variation['variation_name']} - {variation['variation_description']}")
-            for j, item in enumerate(variation['outfit_items'], 1):
-                print(f"    {j}. {item['clothing_type']} - Color: {item.get('color', 'Any')} - Filters: {item.get('filters', {})}")
-        
-        # Search for each outfit variation
-        all_results = {}
-        
+        # Search for each variation
+        results = {}
         for variation in outfit_response['outfit_variations']:
             variation_name = variation['variation_name']
-            print(f"\n🔍 Searching for variation: {variation_name}")
-            
-            # Search for this variation's items
-            variation_results = search_outfit(
-                outfit_items=variation['outfit_items'],
-                top_results_per_item=top_results_per_item,
-                sort_by_price=sort_by_price,
-                price_order=price_order
-            )
-            
-            # Store results with variation name as key
-            all_results[variation_name] = {
-                'variation_description': variation['variation_description'],
-                'products': variation_results
-            }
+            results[variation_name] = self.search_outfit_variation(variation_name, outfit_response)
         
-        return all_results
+        return results
+
+    def search_outfit_variation(self, variation_name: str, outfit_response: dict) -> Dict[str, List]:
+        """
+        Search for a specific outfit variation.
+        
+        Args:
+            variation_name (str): Name of the variation to search for
+            outfit_response (dict): Parsed outfit response
+            
+        Returns:
+            Dict[str, List]: Search results for the variation
+        """
+        # Find the variation
+        variation = None
+        for v in outfit_response['outfit_variations']:
+            if v['variation_name'] == variation_name:
+                variation = v
+                break
+        
+        if not variation:
+            return {}
+        
+        # Search for the outfit
+        outfit_items = []
+        for item in variation['outfit_items']:
+            outfit_items.append({
+                'clothing_type': item['clothing_type'],
+                'color': item.get('color'),
+                'filters': item.get('filters', {})
+            })
+        
+        return search_outfit(outfit_items, top_results_per_item=5)
 
 def search_outfit_with_ai_prompt(api_key: str, prompt: str, top_results_per_item: int = 1,
                                 sort_by_price: bool = True, price_order: str = 'asc') -> Dict[str, List]:
     """
-    Convenience function to search for an outfit using a natural language prompt.
+    Convenience function to search for an outfit using AI prompt parsing.
     
     Args:
         api_key (str): OpenAI API key
         prompt (str): Natural language outfit description
-        top_results_per_item (int): Number of top results to return per item
-        sort_by_price (bool): Whether to sort results by price
-        price_order (str): Sort order for price ('asc' or 'desc')
+        top_results_per_item (int): Number of top results per item
+        sort_by_price (bool): Whether to sort by price
+        price_order (str): Sort order ('asc' or 'desc')
         
     Returns:
-        dict: Dictionary with clothing types as keys and lists of products as values
+        Dict[str, List]: Search results
     """
     parser = OutfitPromptParser(api_key)
-    return parser.search_outfit_from_prompt(
-        prompt=prompt,
-        top_results_per_item=top_results_per_item,
-        sort_by_price=sort_by_price,
-        price_order=price_order
-    )
+    return parser.search_outfit_from_prompt(prompt, top_results_per_item, sort_by_price, price_order)
 
-# Example usage
-if __name__ == "__main__":
-    # You'll need to set your OpenAI API key
-    import os
-    
-    # Get API key from environment variable (recommended for security)
-    api_key = Config.OPENAI_API_KEY
-    
+def test_outfit_parser():
+    """Test the outfit parser functionality"""
+    # Check if API key is available
+    api_key = os.getenv('OPENAI_API_KEY')
     if not api_key:
-        print("Please set your OPENAI_API_KEY environment variable")
-        print("Example: export OPENAI_API_KEY='your-api-key-here'")
-        exit(1)
+        return
     
-    # Example prompts to test
-    test_prompts = [
-        "old money summer vibe with deep autumn colors",
-        "minimalist Scandinavian style with neutral tones",
-        #"streetwear aesthetic with bold colors",
-        #"business casual for a tech startup",
-        #"vintage 90s grunge look"
-    ]
+    # Test prompt
+    prompt = "casual summer outfit with linen shirts"
     
-    parser = OutfitPromptParser(api_key)
-    
-    for prompt in test_prompts:
-        print(f"\n{'='*60}")
-        print(f"Testing prompt: '{prompt}'")
-        print('='*60)
+    try:
+        # Create parser
+        parser = OutfitPromptParser(api_key)
         
-        try:
-            # Parse the prompt
-            outfit_response = parser.parse_outfit_prompt(prompt)
-            
-            print(f"\n🎨 Outfit Vision:")
-            print(f"   {outfit_response['outfit_description']}")
-            
-            print(f"\nParsed outfit variations:")
-            for i, variation in enumerate(outfit_response['outfit_variations'], 1):
-                print(f"  {i}. {variation['variation_name']} - {variation['variation_description']}")
-                for j, item in enumerate(variation['outfit_items'], 1):
-                    print(f"    {j}. {item['clothing_type']}")
-                    if 'color' in item:
-                        print(f"     Color: {item['color']}")
-                    if 'filters' in item:
-                        print(f"     Filters: {item['filters']}")
-            
-            # Search for the outfit (uncomment to actually search)
-            # results = parser.search_outfit_from_prompt(prompt, top_results_per_item=2)
-            # print(f"\nFound {sum(len(products) for products in results.values())} total products")
-            
-        except Exception as e:
-            print(f"Error: {e}")
+        # Parse prompt
+        outfit_response = parser.parse_outfit_prompt(prompt, max_items_per_category=1)
         
-        print("\n" + "-"*60) 
+        # Search for outfit
+        results = parser.search_outfit_from_prompt(prompt, top_results_per_item=1)
+        
+        return {
+            'outfit_response': outfit_response,
+            'search_results': results
+        }
+        
+    except Exception as e:
+        return {'error': str(e)}
+
+if __name__ == "__main__":
+    test_outfit_parser() 

@@ -1,0 +1,1 @@
+web: python ai_server/run_server.py 

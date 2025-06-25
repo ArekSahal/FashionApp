@@ -1,49 +1,33 @@
 #!/usr/bin/env python3
 """
-Entry point for data collection operations.
-Provides easy access to different collection scripts.
+Data Collection Runner
+
+This script provides a menu to run different data collection operations.
 """
 
-import sys
-import os
+from bulk_product_collector import collect_all_products_batch_upload
+from detailed_product_collector import collect_detailed_products_individual
 
 def main():
-    print("🚀 FashionApp Data Collection")
-    print("=" * 40)
-    print("Choose an operation:")
-    print("1. Bulk Collection (100 items per type)")
-    print("2. Detailed Collection (individual processing)")
-    print("3. Exit")
-    
+    """Main function with menu interface"""
     while True:
         try:
-            choice = input("\nEnter your choice (1-3): ").strip()
+            choice = input("Choose an operation:\n1. Bulk Collection (100 items per type)\n2. Detailed Collection (individual processing)\n3. Exit\nEnter choice (1-3): ")
             
             if choice == "1":
-                print("\n🔄 Starting bulk collection...")
-                from bulk_product_collector import main as bulk_main
-                bulk_main()
-                break
-                
+                collect_all_products_batch_upload(items_per_type=100, batch_size=20)
             elif choice == "2":
-                print("\n🔄 Starting detailed collection...")
-                from detailed_product_collector import main as detailed_main
-                detailed_main()
-                break
-                
+                clothing_types = ['shirts', 't_shirts', 'shorts']
+                collect_detailed_products_individual(clothing_types, items_per_type=3, use_database=True)
             elif choice == "3":
-                print("👋 Goodbye!")
                 break
-                
             else:
-                print("❌ Invalid choice. Please enter 1, 2, or 3.")
+                pass
                 
         except KeyboardInterrupt:
-            print("\n👋 Operation cancelled.")
             break
         except Exception as e:
-            print(f"❌ Error: {e}")
-            break
+            pass
 
 if __name__ == "__main__":
     main() 
