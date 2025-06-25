@@ -8,9 +8,6 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from outfit_prompt_parser import OutfitPromptParser
 import search_function
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from config import Config
 import logging
 from datetime import datetime
@@ -22,7 +19,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler('outfit_server.log')
+        logging.FileHandler('logs/outfit_server.log')
     ]
 )
 logger = logging.getLogger(__name__)

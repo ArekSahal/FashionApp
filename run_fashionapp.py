@@ -27,7 +27,6 @@ def main():
                 
             elif choice == "2":
                 print("\n🤖 Starting AI server...")
-                os.chdir("ai_server")
                 os.system("python run_server.py")
                 break
                 

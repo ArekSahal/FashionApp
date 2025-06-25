@@ -12,14 +12,14 @@ This script collects detailed product information including:
 It can save to either Supabase database or CSV file.
 """
 
-from zalando_scraper import (
+from data_collection.zalando_scraper import (
     get_zalando_products,
     extract_product_details_from_page,
     find_packshot_image,
     modify_image_url_to_packshot
 )
-from color_extractor import extract_colors_from_product_image
-from supabase_db import SupabaseDB
+from data_collection.color_extractor import extract_colors_from_product_image
+from data_collection.supabase_db import SupabaseDB
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 import csv
