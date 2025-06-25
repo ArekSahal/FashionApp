@@ -8,6 +8,28 @@ This guide will help you deploy your FashionApp on Railway using the provided co
 2. **GitHub Repository**: Your FashionApp should be in a GitHub repository
 3. **Environment Variables**: You'll need to set up your API keys and database credentials
 
+## Project Structure
+
+The FashionApp has been reorganized for better deployment:
+
+```
+FashionApp/
+├── app.py                    # Main Flask application
+├── run_server.py            # Server startup script
+├── search_function.py       # Database search functionality
+├── outfit_prompt_parser.py  # AI prompt parsing
+├── config.py               # Configuration settings
+├── requirements.txt        # Python dependencies
+├── tests/                  # All test files
+├── docs/                   # Documentation files
+├── logs/                   # Application logs
+├── data_collection/        # Data collection scripts
+├── nixpacks.toml          # Railway build configuration
+├── Procfile               # Alternative deployment method
+├── start.sh               # Startup script
+└── railway.toml           # Railway configuration
+```
+
 ## Configuration Files Created
 
 The following files have been created for Railway deployment:
@@ -18,7 +40,7 @@ The following files have been created for Railway deployment:
 - `start.sh` - Startup script
 - `.railwayignore` - Files to exclude from deployment
 - `runtime.txt` - Python version specification
-- Updated `ai_server/run_server.py` - Now uses PORT environment variable
+- Updated `run_server.py` - Now uses PORT environment variable
 - Updated `requirements.txt` - Added missing Flask dependency
 
 ## Deployment Steps
@@ -134,7 +156,6 @@ For local development, you can still use:
 python run_fashionapp.py
 
 # Or run the AI server directly
-cd ai_server
 python run_server.py
 ```
 

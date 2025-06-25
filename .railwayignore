@@ -58,6 +58,7 @@ bulk_product_collector.py
 color_extractor.py
 
 # Test files
+tests/
 test_*.py
 *_test.py
 
