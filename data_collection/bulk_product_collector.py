@@ -19,8 +19,13 @@ from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 import time
 import os
+import sys
 from datetime import datetime
 from tqdm import tqdm
+
+# Add the parent directory to the path to import config
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config import Config
 
 # All available clothing types from zalando_scraper
 ALL_CLOTHING_TYPES = [
@@ -353,8 +358,19 @@ def main():
     """
     Main function - runs the bulk collection automatically
     """
-    # Check if Supabase key is set
-    if not os.getenv('SUPABASE_KEY'):
+    # Check if required API keys are set
+    missing_keys = Config.validate_required_keys()
+    if missing_keys:
+        print("❌ Missing required API keys:")
+        for key in missing_keys:
+            print(f"   - {key}")
+        print("\n💡 To fix this:")
+        print("   1. Create a .env file in the project root")
+        print("   2. Add your API keys to the .env file")
+        print("   3. Or set them as environment variables")
+        print("\nExample .env file content:")
+        print("SUPABASE_KEY=your_supabase_anon_key_here")
+        print("OPENAI_API_KEY=your_openai_api_key_here")
         return
     
     try:
@@ -368,9 +384,9 @@ def main():
         print_final_statistics(stats)
         
     except KeyboardInterrupt:
-        pass
+        print("\n⚠️  Collection interrupted by user")
     except Exception as e:
-        pass
+        print(f"❌ Error during bulk collection: {str(e)}")
 
 if __name__ == "__main__":
     main() 

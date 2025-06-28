@@ -1,0 +1,46 @@
+TODO: Outfit Prompt Parser and Search System Remake
+
+1. **Prompt Handling & Outfit Idea Generation**
+   - Update the system to first generate 3 distinct outfit ideas from the user's prompt.
+   - Ensure each idea is creative and relevant to the prompt.
+   - Use the LLM to generate these ideas before any tag or search logic.
+
+2. **Outfit Description Tagging**
+   - For each generated outfit idea, describe it using as many relevant tags as possible.
+   - Use the tags defined in `data_collection/allowed_tags.py`.
+   - Implement a function to map outfit descriptions to tags.
+
+3. **Search Function Overhaul**
+   - Update the search function to retrieve clothing items for each outfit idea.
+   - For each item, score it based on how many tags it matches from the outfit's tag set.
+   - Return the best-matching clothes for each outfit idea.
+
+4. **Scoring Function**
+   - Implement a scoring function that compares clothing item tags to outfit tags.
+   - Score higher for more tag matches.
+   - Integrate this scoring into the search pipeline.
+
+5. **LLM Model Input/Output Changes**
+   - Redesign the LLM system prompt and output parsing to:
+     - First, generate 3 outfit ideas.
+     - Then, for each, generate a detailed tag-based description.
+   - Ensure output is structured for downstream tag extraction and search.
+
+6. **Integration & Refactoring**
+   - Refactor `outfit_prompt_parser.py` to follow the new flow:
+     1. Prompt → 3 Outfit Ideas (LLM)
+     2. Outfit Ideas → Tag Descriptions (LLM or deterministic)
+     3. Tag Descriptions → Search & Score Clothes
+     4. Return best-matching clothes for each outfit
+   - Update any affected utility functions and data flows.
+
+7. **Testing & Validation**
+   - Write or update tests to cover:
+     - Multi-idea generation
+     - Tag extraction
+     - Scoring logic
+     - End-to-end flow
+
+8. **Documentation**
+   - Update or create documentation to explain the new flow and logic.
+   - Document how tags are used and how scoring works.

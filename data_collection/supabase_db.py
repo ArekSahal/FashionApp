@@ -172,7 +172,7 @@ class SupabaseDB:
     
     def get_all_products(self, limit: int = 1000) -> List[Dict]:
         """
-        Get all products from the database
+        Get all products from the database that do not have tags (Tags is null or empty)
         
         Args:
             limit (int): Maximum number of products to retrieve
@@ -181,17 +181,49 @@ class SupabaseDB:
             List[Dict]: List of all product data
         """
         try:
-            response = self.client.table('clothes_db').select('*').limit(limit).execute()
+            # Only select products where Tags is null or Tags is an empty array
+            response = (
+                self.client.table('clothes_db')
+                .select('*')
+                .or_('Tags.is.null,Tags.eq.{}')
+                .limit(limit)
+                .execute()
+            )
             
             if response.data:
-                logger.info(f"📊 Retrieved {len(response.data)} products from database")
+                logger.info(f"📊 Retrieved {len(response.data)} products from database (without tags)")
                 return response.data
             else:
-                logger.info("📊 No products found in database")
+                logger.info("📊 No products without tags found in database")
                 return []
                 
         except Exception as e:
             logger.error(f"❌ Error retrieving products: {str(e)}")
+            return []
+    
+    def get_all_products_with_tags(self, limit: int = 10000) -> List[Dict]:
+        """
+        Get all products from the database, including their Tags field.
+        Args:
+            limit (int): Maximum number of products to retrieve
+        Returns:
+            List[Dict]: List of all product data (with Tags)
+        """
+        try:
+            response = (
+                self.client.table('clothes_db')
+                .select('name,Tags,original_url')
+                .limit(limit)
+                .execute()
+            )
+            if response.data:
+                logger.info(f"📊 Retrieved {len(response.data)} products from database (with tags)")
+                return response.data
+            else:
+                logger.info("📊 No products found in database")
+                return []
+        except Exception as e:
+            logger.error(f"❌ Error retrieving products with tags: {str(e)}")
             return []
     
     def get_database_stats(self) -> Dict:
@@ -251,4 +283,25 @@ class SupabaseDB:
                 
         except Exception as e:
             logger.error(f"❌ Database connection test failed: {str(e)}")
+            return False
+    
+    def update_tags(self, original_url: str, tags: List[str]) -> bool:
+        """
+        Update the Tags column for a product identified by original_url.
+        Args:
+            original_url (str): The unique URL identifying the product
+            tags (List[str]): List of tags to set
+        Returns:
+            bool: True if update was successful, False otherwise
+        """
+        try:
+            response = self.client.table('clothes_db').update({"Tags": tags}).eq("original_url", original_url).execute()
+            if response.data:
+                logger.info(f"✅ Updated tags for product: {original_url}")
+                return True
+            else:
+                logger.error(f"❌ Failed to update tags for product: {original_url}")
+                return False
+        except Exception as e:
+            logger.error(f"❌ Error updating tags for {original_url}: {str(e)}")
             return False 
