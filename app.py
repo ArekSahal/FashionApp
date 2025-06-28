@@ -12,6 +12,7 @@ import logging
 from datetime import datetime
 import traceback
 import os
+import json
 
 # Create logs directory if it doesn't exist
 os.makedirs('logs', exist_ok=True)
@@ -100,6 +101,13 @@ def search_outfit():
         logger.info(f"✅ Outfit search completed")
         logger.info("=" * 60)
 
+        # --- Write search results to file for debugging ---
+        try:
+            with open('logs/last_search_outfit.json', 'w', encoding='utf-8') as f:
+                json.dump(search_results, f, ensure_ascii=False, indent=2)
+        except Exception as file_err:
+            logger.error(f"Failed to write search results to file: {file_err}")
+
         # --- Transform to old format for backward compatibility ---
         old_format_results = []
         for idea in search_results.get('outfit_ideas', []):
@@ -125,7 +133,14 @@ def search_outfit():
                 'tags': all_tags,
                 'products': deduped_products
             })
-        return jsonify({'success': True, 'results': old_format_results})
+        full_return = {'success': True, 'results': old_format_results}
+        # --- Write full return to file for debugging ---
+        try:
+            with open('logs/last_search_outfit_full_return.json', 'w', encoding='utf-8') as f:
+                json.dump(full_return, f, ensure_ascii=False, indent=2)
+        except Exception as file_err:
+            logger.error(f"Failed to write full return to file: {file_err}")
+        return jsonify(full_return)
     except Exception as e:
         logger.error(f"❌ ERROR: {str(e)}")
         logger.error(f"Traceback: {traceback.format_exc()}")

@@ -75,6 +75,34 @@ class OutfitPromptParser:
         self.detailed_inventory = get_detailed_inventory_by_clothing_type()
         detailed_inventory_text = self._format_detailed_inventory_for_ai()
 
+        # Define sets for validation
+        TOPS = {"t-shirt", "shirt", "blouse", "sweater", "hoodie", "tank-top", "polo", "cardigan", "jacket", "coat", "blazer", "vest", "suit"}
+        BOTTOMS = {"jeans", "trousers", "shorts", "skirt", "leggings", "jumpsuit", "romper", "sweatpants", "tracksuit", "overalls"}
+        FOOTWEAR = {"shoes", "sneakers", "boots", "loafers", "sandals", "slippers"}
+        SOCKS = {"socks"}
+
+        def validate_outfit(outfit):
+            clothing_types = []
+            for piece in outfit.get('clothing_pieces', []):
+                ct = piece.get('clothing_type')
+                if isinstance(ct, list):
+                    clothing_types.extend([c.lower() for c in ct])
+                elif isinstance(ct, str):
+                    clothing_types.append(ct.lower())
+            clothing_types_set = set(clothing_types)
+            # Check for at least one top and one bottom (shoes/socks not required)
+            has_top = any(ct in TOPS for ct in clothing_types_set)
+            has_bottom = any(ct in BOTTOMS for ct in clothing_types_set)
+            # Check for max one of any clothing type
+            from collections import Counter
+            ct_counter = Counter(clothing_types)
+            has_more_than_one = any(count > 1 for count in ct_counter.values())
+            if not (has_top and has_bottom):
+                return False, "Outfit must include at least one top and one bottom. Shoes and socks are optional."
+            if has_more_than_one:
+                return False, "Outfit contains more than one of a clothing type. Only one of each clothing type is allowed."
+            return True, ""
+
         for attempt in range(max_retries):
             try:
                 system_prompt = self._create_structured_outfit_prompt(detailed_inventory_text, max_items_per_category, attempt)
@@ -118,6 +146,11 @@ class OutfitPromptParser:
                             'outfit_items': []
                         } for i, idea in enumerate(parsed_response['outfit_ideas'])
                     ]
+                # Validate each outfit
+                for idx, idea in enumerate(parsed_response['outfit_ideas']):
+                    valid, reason = validate_outfit(idea)
+                    if not valid:
+                        raise ValueError(f"Outfit idea {idx+1} failed validation: {reason}")
                 return parsed_response
             except Exception as e:
                 if attempt == max_retries - 1:
@@ -134,9 +167,9 @@ class OutfitPromptParser:
             "hoodie", "suit", "blazer", "vest", "tank-top", "leggings", "jumpsuit", "romper", "cardigan", "polo",
             "sweatpants", "tracksuit", "bodysuit", "overalls", "cape", "wrap", "scarf"
         ]
-        system_prompt = f"""You are an expert fashion stylist and outfit planner. Your task is to generate 3 creative and distinct outfit ideas based on the user's prompt. Each idea should have a name, a high-level description, and a breakdown into multiple clothing pieces (such as shirt, pants, shoes, etc.).\n\nALL OUTFIT IDEAS AND CLOTHING PIECES SHOULD BE FOR MEN'S CLOTHING ONLY.\n\nFor each clothing piece, you MUST provide its clothing_type (from the CLOTHING TYPES list below). The clothing_type can be either a single string (e.g., \"shirt\") or a list of strings (e.g., [\"shirt\", \"t-shirt\"]) if multiple types are acceptable. Each outfit must include at least one clothing piece with a clothing_type. Use the available inventory and be as descriptive as possible.\n\nAVAILABLE INVENTORY:\n{detailed_inventory_text}\n\nCLOTHING TYPES (use only these for clothing_type): {', '.join(clothing_types_list)}\nAVAILABLE COLORS: {', '.join(self.colors)}\nAVAILABLE MATERIAL BUILDING BLOCKS: {', '.join(self.available_materials)}\n\nTASK:\n1. Generate 3 creative and distinct outfit ideas based on the user's prompt.\n2. For each idea, provide:\n   - a name\n   - a high-level description\n   - a list of clothing pieces, each with:\n     - clothing_type (from the CLOTHING TYPES list above; required for every piece; can be a string or a list of strings)\n     - name\n     - detailed description\n3. Be as descriptive as possible using the available inventory.\n4. Do NOT return any search parameters or JSON for search, just ideas and descriptions.\n\nOUTPUT FORMAT:\n{{\n  \"outfit_ideas\": [\n    {{\n      \"name\": \"Name of the outfit idea\",\n      \"description\": \"High-level description of the outfit idea\",\n      \"clothing_pieces\": [\n        {{\n          \"clothing_type\": \"Type of clothing (from CLOTHING TYPES list, e.g., shirt, pants)\",\n          \"name\": \"Name of the piece\",\n          \"description\": \"Detailed description of the piece\"\n        }},\n        {{\n          \"clothing_type\": [\"shirt\", \"t-shirt\"],\n          \"name\": \"Name of the piece\",\n          \"description\": \"Detailed description of the piece\"\n        }},\n        ... (multiple pieces)\n      ]\n    }},\n    ... (total 3 ideas)\n  ]\n}}\n"""
+        system_prompt = f"""You are an expert fashion stylist and outfit planner. Your task is to generate 3 creative and distinct outfit ideas based on the user's prompt. Each idea should have a name, a high-level description, and a breakdown into multiple clothing pieces (such as shirt, pants, etc.).\n\nALL OUTFIT IDEAS AND CLOTHING PIECES SHOULD BE FOR MEN'S CLOTHING ONLY.\n\n**IMPORTANT: Each outfit must be a complete, wearable look for a man.**\n\n**Each outfit MUST include at least:**\n- One top (e.g., shirt, t-shirt, sweater, hoodie, etc.)\n- One bottom (e.g., jeans, trousers, shorts, etc.)\n\nShoes/footwear and socks are optional and NOT required.\n\n**Strict rules:**\n- You may include at most ONE of any clothing type in an outfit (e.g., do not include two t-shirts or two pairs of jeans in the same outfit).\n- Do NOT generate outfits that consist only of tops, only bottoms, or only accessories.\n- Do NOT generate outfits with more than one of any clothing type.\n- All pieces together must form a full, wearable outfit.\n\nYou may also include outerwear (e.g., jacket, coat) and accessories (e.g., scarf), but these are optional and cannot replace the required categories above.\n\n**Checklist for each outfit:**\n- [ ] Includes at least one top\n- [ ] Includes at least one bottom\n- [ ] No more than one of any clothing type\n- [ ] All pieces together form a full, wearable outfit\n\nFor each clothing piece, you MUST provide its clothing_type (from the CLOTHING TYPES list below). The clothing_type can be either a single string (e.g., \"shirt\") or a list of strings (e.g., [\"shirt\", \"t-shirt\"]) if multiple types are acceptable. Each outfit must include at least one clothing piece with a clothing_type. Use the available inventory and be as descriptive as possible.\n\nAVAILABLE INVENTORY:\n{detailed_inventory_text}\n\nCLOTHING TYPES (use only these for clothing_type): {', '.join(clothing_types_list)}\nAVAILABLE COLORS: {', '.join(self.colors)}\nAVAILABLE MATERIAL BUILDING BLOCKS: {', '.join(self.available_materials)}\n\nTASK:\n1. Generate 3 creative and distinct outfit ideas based on the user's prompt.\n2. For each idea, provide:\n   - a name\n   - a high-level description\n   - a list of clothing pieces, each with:\n     - clothing_type (from the CLOTHING TYPES list above; required for every piece; can be a string or a list of strings)\n     - name\n     - detailed description\n3. Be as descriptive as possible using the available inventory.\n4. Do NOT return any search parameters or JSON for search, just ideas and descriptions.\n\nOUTPUT FORMAT:\n{{\n  \"outfit_ideas\": [\n    {{\n      \"name\": \"Name of the outfit idea\",\n      \"description\": \"High-level description of the outfit idea\",\n      \"clothing_pieces\": [\n        {{\n          \"clothing_type\": \"Type of clothing (from CLOTHING TYPES list, e.g., shirt, pants)\",\n          \"name\": \"Name of the piece\",\n          \"description\": \"Detailed description of the piece\"\n        }},\n        {{\n          \"clothing_type\": [\"shirt\", \"t-shirt\"],\n          \"name\": \"Name of the piece\",\n          \"description\": \"Detailed description of the piece\"\n        }},\n        ... (multiple pieces)\n      ]\n    }},\n    ... (total 3 ideas)\n  ]\n}}\n"""
         if attempt > 0:
-            system_prompt += f"\n\nRETRY ATTEMPT {attempt + 1}: Be more creative and ensure 3 distinct ideas, each with multiple clothing pieces. Each piece must have a clothing_type from the CLOTHING TYPES list, as a string or a list."
+            system_prompt += f"\n\nRETRY ATTEMPT {attempt + 1}: Be more creative and ensure 3 distinct ideas, each with multiple clothing pieces. Each piece must have a clothing_type from the CLOTHING TYPES list, as a string or a list. Each outfit must be a complete, wearable look as described above."
         return system_prompt
 
     def _extract_tags_from_description(self, description: str) -> list:
