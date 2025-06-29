@@ -13,6 +13,7 @@ from datetime import datetime
 import traceback
 import os
 import json
+import math
 
 # Create logs directory if it doesn't exist
 os.makedirs('logs', exist_ok=True)
@@ -41,6 +42,22 @@ except Exception as e:
     logger.error(f"❌ Failed to initialize OutfitPromptParser: {e}")
     logger.info("⚠️ Server will start in limited mode without database connection")
     parser = None
+
+def sanitize_for_json(obj):
+    """
+    Recursively sanitize data to ensure all floats are valid JSON (no Infinity/NaN).
+    Replace such values with None.
+    """
+    if isinstance(obj, float):
+        if math.isinf(obj) or math.isnan(obj):
+            return None
+        return obj
+    elif isinstance(obj, dict):
+        return {k: sanitize_for_json(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [sanitize_for_json(item) for item in obj]
+    else:
+        return obj
 
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -140,12 +157,13 @@ def search_outfit():
                 json.dump(full_return, f, ensure_ascii=False, indent=2)
         except Exception as file_err:
             logger.error(f"Failed to write full return to file: {file_err}")
-        return jsonify(full_return)
+        # --- Sanitize before returning ---
+        return jsonify(sanitize_for_json(full_return))
     except Exception as e:
         logger.error(f"❌ ERROR: {str(e)}")
         logger.error(f"Traceback: {traceback.format_exc()}")
         logger.info("=" * 60)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify(sanitize_for_json({'success': False, 'error': str(e)})), 500
 
 @app.route('/parse_prompt', methods=['POST'])
 def parse_prompt_only():
@@ -191,21 +209,21 @@ def parse_prompt_only():
         logger.info(f"✅ Parsed successfully")
         logger.info("=" * 60)
         
-        return jsonify({
+        return jsonify(sanitize_for_json({
             'success': True,
             'outfit_description': outfit_response['outfit_description'],
             'outfit_variations': outfit_response['outfit_variations']
-        })
+        }))
         
     except Exception as e:
         logger.error(f"❌ ERROR: {str(e)}")
         logger.error(f"Traceback: {traceback.format_exc()}")
         logger.info("=" * 60)
         
-        return jsonify({
+        return jsonify(sanitize_for_json({
             'success': False,
             'error': str(e)
-        }), 500
+        })), 500
 
 @app.route('/search_outfit_dummy', methods=['POST'])
 def search_outfit_dummy():
@@ -213,17 +231,17 @@ def search_outfit_dummy():
 
 @app.errorhandler(404)
 def not_found(error):
-    return jsonify({
+    return jsonify(sanitize_for_json({
         'success': False,
         'error': 'Endpoint not found'
-    }), 404
+    })), 404
 
 @app.errorhandler(500)
 def internal_error(error):
-    return jsonify({
+    return jsonify(sanitize_for_json({
         'success': False,
         'error': 'Internal server error'
-    }), 500
+    })), 500
 
 if __name__ == '__main__':
     logger.info("🚀 Starting Outfit Search Flask Server...")

@@ -21,6 +21,7 @@ from zalando_scraper import (
 import re
 from tqdm import tqdm
 from typing import List, Dict, Optional, Any, Set, Tuple
+import uuid
 
 
 
@@ -119,7 +120,7 @@ def search_database_products(filters: Optional[Dict] = None,
         relevance_score = (match_count / len(tags)) * 100 if tags else 0.0
         price_numeric = extract_price(item.get('price', ''))
         product = {
-            'id': item.get('id'),
+            'id': item.get('id') if item.get('id') is not None else str(uuid.uuid4()),
             'name': item.get('name'),
             'url': item.get('url'),
             'original_url': item.get('original_url'),
@@ -217,7 +218,7 @@ def search_products_by_text(search_terms: List[str], max_items: int = 20, filter
         price_numeric = extract_price(item.get('price', ''))
         
         product = {
-            'id': item.get('id'),
+            'id': item.get('id') if item.get('id') is not None else str(uuid.uuid4()),
             'name': item.get('name'),
             'url': item.get('url'),
             'original_url': item.get('original_url'),
