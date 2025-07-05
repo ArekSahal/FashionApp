@@ -9,8 +9,7 @@ import importlib.util
 from search_function import (
     extract_price,
     calculate_product_relevance_score,
-    search_database_products,
-    search_products_by_text
+    search_database_products
 )
 from config import Config
 # Import constants from zalando_scraper

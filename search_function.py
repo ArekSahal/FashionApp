@@ -183,7 +183,7 @@ if __name__ == '__main__':
     # Example manual test for search_database_products
     # NOTE: This will attempt to connect to the real database. Adjust parameters as needed.
     print("Testing search_database_products with example tags...")
-    example_tags = ['red', 'shirt']
+    example_tags = ['blue', 'shirt',"linen"]
     try:
         results = search_database_products(
             target_tags=example_tags,
