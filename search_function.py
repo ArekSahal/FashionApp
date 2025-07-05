@@ -77,6 +77,7 @@ def search_database_products(filters: Optional[Dict] = None,
                            target_tags: Optional[List[str]] = None) -> List[Dict]:
     """
     Search products in the Supabase database using only the Tags column.
+    Clothing type and color tags are required (must match), all other tags are used for scoring.
     Args:
         filters (dict, optional): Dictionary of filters to apply (e.g., {'material': 'linne', 'size': 'M'})
         max_items (int, optional): Maximum number of products to return. Defaults to 10.
@@ -101,12 +102,20 @@ def search_database_products(filters: Optional[Dict] = None,
     tags = target_tags if target_tags is not None else search_terms
     if not tags or len(tags) == 0:
         return []
-    # Query for any product where Tags contains any of the input tags
-    # Use the 'cs' (contains) operator for each tag and join with 'or'
-    or_clauses = [f'Tags.cs.{{"{tag}"}}' for tag in tags if tag.strip()]
+    # Separate clothing type and color tags from other tags
+    clothing_type_tags = [tag for tag in tags if tag.lower() in [ct.lower() for ct in CLOTHING_TYPES]]
+    color_tags = [tag for tag in tags if tag.lower() in [c.lower() for c in COLORS]]
+    other_tags = [tag for tag in tags if tag not in clothing_type_tags and tag not in color_tags]
+    # Require at least one clothing type and one color tag
+    if not clothing_type_tags or not color_tags:
+        return []
+    # Build query: require both clothing type and color tags in Tags array
     query = db_client.client.table('clothes_db').select('*')
-    if or_clauses:
-        query = query.or_(','.join(or_clauses))
+    # Both must be present (AND logic)
+    for ct in clothing_type_tags:
+        query = query.cs('Tags', [ct])
+    for color in color_tags:
+        query = query.cs('Tags', [color])
     query = query.limit(max_items * 100)  # Get more for better filtering
     try:
         response = query.execute()
@@ -115,9 +124,12 @@ def search_database_products(filters: Optional[Dict] = None,
     products = []
     for item in response.data:
         product_tags = item.get('Tags', []) or []
-        # Score: number of input tags present in product's Tags / total input tags * 100
-        match_count = len([tag for tag in tags if tag.lower() in [t.lower() for t in product_tags]])
-        relevance_score = (match_count / len(tags)) * 100 if tags else 0.0
+        # Score: number of other input tags present in product's Tags / total other tags * 100
+        if other_tags:
+            match_count = len([tag for tag in other_tags if tag.lower() in [t.lower() for t in product_tags]])
+            relevance_score = (match_count / len(other_tags)) * 100 if other_tags else 0.0
+        else:
+            relevance_score = 0.0
         price_numeric = extract_price(item.get('price', ''))
         product = {
             'id': item.get('id') if item.get('id') is not None else str(uuid.uuid4()),
@@ -148,9 +160,7 @@ def search_database_products(filters: Optional[Dict] = None,
             'Tags': product_tags,
             'relevance_score': relevance_score
         }
-        # Only include products with at least one matching tag
-        if match_count > 0:
-            products.append(product)
+        products.append(product)
     # Sort by relevance score, then price if requested
     if use_relevance_scoring:
         if sort_by_price:
