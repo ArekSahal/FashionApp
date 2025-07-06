@@ -23,6 +23,15 @@ DESCRIPTIVE_TAGS = allowed_tags_module.DESCRIPTIVE_TAGS
 CLOTHING_TYPES = allowed_tags_module.CLOTHING_TYPES
 COLORS = allowed_tags_module.COLORS
 
+# Add at the top, after imports
+KNOWLEDGE_BASE_PATH = os.path.join(os.path.dirname(__file__), "knowledge_base.txt")
+def load_knowledge_base():
+    try:
+        with open(KNOWLEDGE_BASE_PATH, "r", encoding="utf-8") as f:
+            return f.read().strip()
+    except Exception:
+        return ""
+
 class OutfitPromptParser:
     """
     A class that uses OpenAI API to parse natural language outfit descriptions
@@ -34,6 +43,8 @@ class OutfitPromptParser:
     You are an expert fashion stylist and outfit planner. Your task is to generate 3 creative and distinct outfit ideas 
     based on the user's prompt. Each idea should have a name, a high-level description, and a breakdown into multiple 
     clothing pieces (such as shirt, pants, etc.).
+
+    {knowledge_base}
 
     ALL OUTFIT IDEAS AND CLOTHING PIECES SHOULD BE FOR MEN'S CLOTHING ONLY.
 
@@ -98,14 +109,15 @@ class OutfitPromptParser:
     }}
     """
 
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, knowledge_base: Optional[str] = None):
         """
-        Initialize the parser with OpenAI API key.
-        
+        Initialize the parser with OpenAI API key and optional knowledge base.
         Args:
             api_key (str): OpenAI API key
+            knowledge_base (str, optional): Additional knowledge base text to inject into the prompt
         """
         self.client = openai.OpenAI(api_key=api_key)
+        self.knowledge_base = knowledge_base if knowledge_base is not None else load_knowledge_base()
         
         
     
@@ -176,11 +188,11 @@ class OutfitPromptParser:
         """
         System prompt for generating 3 creative outfit ideas, each with multiple clothing pieces (organized by clothing type).
         """
-        # Build the tag lists for the prompt
         descriptive_tags = ', '.join(DESCRIPTIVE_TAGS)
         clothing_types = ', '.join(CLOTHING_TYPES)
         colors = ', '.join(COLORS)
         prompt = self.SYSTEM_PROMPT_TEMPLATE.format(
+            knowledge_base=self.knowledge_base,
             descriptive_tags=descriptive_tags,
             clothing_types=clothing_types,
             colors=colors
