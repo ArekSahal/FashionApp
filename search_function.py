@@ -12,26 +12,14 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), 'data_collection'))
 
 from supabase_db import SupabaseDB
-from allowed_tags import ALLOWED_TAGS
+from allowed_tags import DESCRIPTIVE_TAGS, CLOTHING_TYPES, COLORS
 import re
 from tqdm import tqdm
 from typing import List, Dict, Optional, Any, Set, Tuple
 import uuid
 
-# Automatically extract CLOTHING_TYPES and COLORS from ALLOWED_TAGS
-# Clothing types: from 't-shirt' to 'scarf' (inclusive)
-# Colors: from 'black' to 'ombre' (inclusive)
-def extract_tag_range(tags, start, end):
-    try:
-        start_idx = tags.index(start)
-        end_idx = tags.index(end)
-        return tags[start_idx:end_idx+1]
-    except ValueError:
-        return []
-
-CLOTHING_TYPES = extract_tag_range(ALLOWED_TAGS, 't-shirt', 'scarf')
-# Colors: from 'black' to 'ombre' (includes neutrals, pastels, earth tones, metallics, patterns)
-COLORS = extract_tag_range(ALLOWED_TAGS, 'black', 'ombre')
+ALLOWED_TAGS = set(DESCRIPTIVE_TAGS + CLOTHING_TYPES + COLORS)
+PRODUCT_CACHE = None
 
 def extract_price(price_str):
     """
@@ -75,63 +63,53 @@ def calculate_product_relevance_score(product: Dict[str, Any],
     score = (len(tag_matches) / len(target_tags)) * 100 if target_tags else 0.0
     return score
 
-def search_database_products(filters: Optional[Dict] = None, 
-                           max_items: int = 10, 
+def load_all_products_from_supabase():
+    """
+    Loads all products from Supabase into the global PRODUCT_CACHE.
+    """
+    global PRODUCT_CACHE
+    db_client = SupabaseDB()
+    query = db_client.client.table('clothes_db').select('*')
+    try:
+        response = query.execute()
+        PRODUCT_CACHE = response.data
+    except Exception as e:
+        raise Exception(f"Failed to load products from Supabase: {str(e)}")
+
+def refresh_product_cache():
+    """
+    Refreshes the product cache by reloading all products from Supabase.
+    """
+    load_all_products_from_supabase()
+
+def search_database_products(
+                           max_items: int = 20000, 
                            sort_by_price: bool = False, price_order: str = 'asc',
-                           search_terms: Optional[List[str]] = None,
                            use_relevance_scoring: bool = True,
                            scoring_weights: Optional[Dict[str, float]] = None,
-                           target_tags: Optional[List[str]] = None) -> List[Dict]:
+                           target_tags: Optional[List[str]] = None
+                           , clothing_type: Optional[List[str]] = None
+                           , color: Optional[List[str]] = None) -> List[Dict]:
     """
     Search products in the Supabase database using only the Tags column.
     Clothing type and color tags are required (must match), all other tags are used for scoring.
-    Args:
-        filters (dict, optional): Dictionary of filters to apply (e.g., {'material': 'linne', 'size': 'M'})
-        max_items (int, optional): Maximum number of products to return. Defaults to 10.
-        sort_by_price (bool, optional): Whether to sort results by price. Defaults to False.
-        price_order (str, optional): Sort order for price ('asc' or 'desc'). Defaults to 'asc'.
-        use_relevance_scoring (bool, optional): Whether to use the new relevance scoring system. Defaults to True.
-        scoring_weights (Dict[str, float], optional): Custom weights for scoring components.
-        search_terms (List[str], optional): List of key terms to search for in Tags column.
-        target_tags (List[str], optional): Tags to use for scoring (new)
-    Returns:
-        list: List of dictionaries containing the products, sorted by relevance score or price.
     """
-    if price_order not in ['asc', 'desc']:
-        raise ValueError("price_order must be either 'asc' or 'desc'")
-    try:
-        db_client = SupabaseDB()
-    except Exception as e:
-        raise Exception(f"Failed to initialize database connection: {str(e)}")
-    if filters is None:
-        filters = {}
-    # Use tags from target_tags or search_terms
-    tags = target_tags if target_tags is not None else search_terms
-    if not tags or len(tags) == 0:
-        return []
-    # Separate clothing type and color tags from other tags
-    clothing_type_tags = [tag for tag in tags if tag.lower() in [ct.lower() for ct in CLOTHING_TYPES]]
-    color_tags = [tag for tag in tags if tag.lower() in [c.lower() for c in COLORS]]
-    other_tags = [tag for tag in tags if tag not in clothing_type_tags and tag not in color_tags]
-    # Require at least one clothing type and one color tag
+    global PRODUCT_CACHE
+    if PRODUCT_CACHE is None:
+        load_all_products_from_supabase()
+    # Use input parameters directly for clothing type and color
+    clothing_type_tags = clothing_type if isinstance(clothing_type, list) else [clothing_type] if clothing_type else []
+    color_tags = color if isinstance(color, list) else [color] if color else []
+    other_tags = [tag for tag in (target_tags or []) if tag not in (clothing_type_tags + color_tags)]
     if not clothing_type_tags or not color_tags:
         return []
-    # Build query: require both clothing type and color tags in Tags array
-    query = db_client.client.table('clothes_db').select('*')
-    # Both must be present (AND logic)
-    for ct in clothing_type_tags:
-        query = query.cs('Tags', [ct])
-    for color in color_tags:
-        query = query.cs('Tags', [color])
-    query = query.limit(max_items * 100)  # Get more for better filtering
-    try:
-        response = query.execute()
-    except Exception as e:
-        raise Exception(f"Database query failed: {str(e)}")
     products = []
-    for item in response.data:
+    for item in PRODUCT_CACHE:
         product_tags = item.get('Tags', []) or []
-        # Score: number of other input tags present in product's Tags / total other tags * 100
+        has_clothing_type = any(ct.lower() in [t.lower() for t in product_tags] for ct in clothing_type_tags)
+        has_color = any(c.lower() in [t.lower() for t in product_tags] for c in color_tags)
+        if not (has_clothing_type and has_color):
+            continue
         if other_tags:
             match_count = len([tag for tag in other_tags if tag.lower() in [t.lower() for t in product_tags]])
             relevance_score = (match_count / len(other_tags)) * 100 if other_tags else 0.0
@@ -183,18 +161,31 @@ if __name__ == '__main__':
     # Example manual test for search_database_products
     # NOTE: This will attempt to connect to the real database. Adjust parameters as needed.
     print("Testing search_database_products with example tags...")
-    example_tags = ['blue', 'shirt',"linen"]
+    example_tags = ["summer"]
+    CLOTHING_TYPES = ['shorts', "jeans"]
+    COLORS = ['black',"white"]
     try:
         results = search_database_products(
             target_tags=example_tags,
-            max_items=5,
+            max_items=5000,
             sort_by_price=True,
             price_order='asc',
-            use_relevance_scoring=True
+            use_relevance_scoring=True,
+            clothing_type=CLOTHING_TYPES,
+            color=COLORS
         )
-        print(f"Results for tags {example_tags}:")
-        for product in results:
-            print(product)
+        print(f"Results for tags {example_tags} (top 5 shown):")
+        for i, product in enumerate(results[:5], 1):
+            print(f"\nResult #{i}:")
+            print(f"  Name: {product.get('name')}")
+            print(f"  Price: {product.get('price')}")
+            print(f"  URL: {product.get('url')}")
+            print(f"  Image URL: {product.get('image_url')}")
+            print(f"  Clothing Type: {product.get('clothing_type')}")
+            print(f"  Material: {product.get('material')}")
+            print(f"  Description: {product.get('description')}")
+            print(f"  Tags: {product.get('Tags')}")
+            print(f"  Relevance Score: {product.get('relevance_score'):.2f}")
     except Exception as e:
         print(f"Error during search: {e}")
 

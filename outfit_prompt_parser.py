@@ -9,65 +9,19 @@ import importlib.util
 from search_function import (
     extract_price,
     calculate_product_relevance_score,
-    search_database_products
+    search_database_products,
+    load_all_products_from_supabase
 )
 from config import Config
-# Import constants from zalando_scraper
-from data_collection.zalando_scraper import CLOTHING_TYPES, COLORS, MATERIALS, validate_material
 
 # Load allowed tags from data_collection/allowed_tags.py
 spec = importlib.util.spec_from_file_location("allowed_tags", os.path.join(os.path.dirname(__file__), "data_collection", "allowed_tags.py"))
 allowed_tags_module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(allowed_tags_module)
-ALLOWED_TAGS = set(allowed_tags_module.ALLOWED_TAGS)
-
-# Stub functions for inventory summary and detailed inventory
-# (Replace with real implementations if needed)
-def get_database_inventory_summary():
-    return {'clothing_types': list(CLOTHING_TYPES.keys()), 'colors': list(COLORS.keys())}
-
-def get_available_materials_from_database():
-    return {'building_blocks': MATERIALS}
-
-def get_detailed_inventory_by_clothing_type():
-    return {}
-
-# Add clothing category mapping
-CLOTHING_CATEGORY_MAP = {
-    "t-shirt": "top",
-    "shirt": "top",
-    "blouse": "top",
-    "polo": "top",
-    "tank-top": "top",
-    "sweater": "sweater",
-    "hoodie": "sweater",
-    "cardigan": "sweater",
-    "jacket": "outerwear",
-    "coat": "outerwear",
-    "blazer": "outerwear",
-    "vest": "outerwear",
-    "suit": "outerwear",
-    "jeans": "bottom",
-    "trousers": "bottom",
-    "shorts": "bottom",
-    "skirt": "bottom",
-    "leggings": "bottom",
-    "jumpsuit": "bottom",
-    "romper": "bottom",
-    "sweatpants": "bottom",
-    "tracksuit": "bottom",
-    "overalls": "bottom",
-    "shoes": "footwear",
-    "sneakers": "footwear",
-    "boots": "footwear",
-    "loafers": "footwear",
-    "sandals": "footwear",
-    "slippers": "footwear",
-    "socks": "accessory",
-    "scarf": "accessory",
-    "cape": "accessory",
-    "wrap": "accessory",
-}
+ALLOWED_TAGS = set(allowed_tags_module.DESCRIPTIVE_TAGS + allowed_tags_module.CLOTHING_TYPES + allowed_tags_module.COLORS)
+DESCRIPTIVE_TAGS = allowed_tags_module.DESCRIPTIVE_TAGS
+CLOTHING_TYPES = allowed_tags_module.CLOTHING_TYPES
+COLORS = allowed_tags_module.COLORS
 
 class OutfitPromptParser:
     """
@@ -76,45 +30,45 @@ class OutfitPromptParser:
     """
     
     # System prompt template for generating outfit ideas
-    SYSTEM_PROMPT_TEMPLATE = """You are an expert fashion stylist and outfit planner. Your task is to generate 3 creative and distinct outfit ideas based on the user's prompt. Each idea should have a name, a high-level description, and a breakdown into multiple clothing pieces (such as shirt, pants, etc.).
+    SYSTEM_PROMPT_TEMPLATE = """
+    You are an expert fashion stylist and outfit planner. Your task is to generate 3 creative and distinct outfit ideas 
+    based on the user's prompt. Each idea should have a name, a high-level description, and a breakdown into multiple 
+    clothing pieces (such as shirt, pants, etc.).
+
     ALL OUTFIT IDEAS AND CLOTHING PIECES SHOULD BE FOR MEN'S CLOTHING ONLY.
+
     **IMPORTANT: Each outfit must be a complete, wearable look for a man.**
+
     **REQUIRED: Each outfit MUST include AT LEAST:**
     - One top (e.g., shirt, t-shirt, sweater, hoodie, etc.)
     - One bottom (e.g., jeans, trousers, shorts, etc.)
-    These are REQUIRED and cannot be omitted. 
+    These are REQUIRED and cannot be omitted.
     Shoes/footwear and socks are optional and NOT required.
-    **STRICT CATEGORY RULES:**
-    - Each outfit may include AT MOST ONE item from each clothing category. For example, you may include a \"shirt\" OR a \"t-shirt\" (both are \"tops\"), but NOT both. 
-    You may include a \"t-shirt\" and a \"sweater\" (since \"sweater\" is a different category). Do NOT include multiple items from the same category in a single outfit.\n- You may include outerwear (e.g., jacket, coat) and accessories (e.g., scarf), but these are optional and cannot replace the required categories above.
-    - Do NOT generate outfits that consist only of tops, only bottoms, or only accessories.
-    - Do NOT generate outfits with more than one of any clothing category.
     - All pieces together must form a full, wearable outfit.
-    **Clothing Categories:**
-    {category_text}
-    **Checklist for each outfit (ALL must be satisfied):**
-    - [ ] Includes at least one top (REQUIRED)
-    - [ ] Includes at least one bottom (REQUIRED)
-    - [ ] No more than one item from any clothing category
-    - [ ] All pieces together form a full, wearable outfit
-    For each clothing piece, you MUST provide its clothing_type (from the CLOTHING TYPES list below). The clothing_type can be either a single string (e.g., \"shirt\") or a list of strings (e.g., [\"shirt\", \"t-shirt\"]) if multiple types are acceptable. Each outfit must include at least one clothing piece with a clothing_type. Use the available inventory and be as descriptive as possible.
-    AVAILABLE INVENTORY:
-    {detailed_inventory_text}
-    CLOTHING TYPES (use only these for clothing_type): {clothing_types}
-    AVAILABLE COLORS: {colors}
-    AVAILABLE MATERIAL BUILDING BLOCKS: {materials}
+
     TASK:
     1. Generate 3 creative and distinct outfit ideas based on the user's prompt.
     2. For each idea, provide:
        - a name
        - a high-level description
        - a list of clothing pieces, each with:
-        - clothing_type (from the CLOTHING TYPES list above; required for every piece; can be a string or a list of strings)
+        - clothing_type (from the CLOTHING TYPES list below; required for every piece; can be a string or a list of strings)
         - name
         - detailed description
-        - tags (list of tags from the ALLOWED_TAGS list below)
+        - tags (list of tags from the DESCRIPTIVE TAGS, CLOTHING TYPES, and COLORS lists below)
     3. Be as descriptive as possible using the available inventory.
-    4. Do NOT return any search parameters or JSON for search, just ideas and descriptions.
+
+    ALLOWED TAGS FOR GENERATION:
+
+    DESCRIPTIVE TAGS:
+    {descriptive_tags}
+
+    CLOTHING TYPES:
+    {clothing_types}
+
+    COLORS:
+    {colors}
+
     OUTPUT FORMAT:
     {{
       "outfit_ideas": [
@@ -123,16 +77,18 @@ class OutfitPromptParser:
                "description": "High-level description of the outfit idea",
                "clothing_pieces": [
                  {{
-                   "clothing_type": "Type of clothing (from CLOTHING TYPES list, e.g., shirt, pants)",
+                   "clothing_type": "shorts",
                    "name": "Name of the piece", 
+                   "color": ["red", "pink"],
                    "description": "Detailed description of the piece",
-                   "tags": ["tag1", "tag2", "tag3"]
+                   "tags": ["tag1", "tag2", "tag3", ...]
                  }},
                  {{
                    "clothing_type": ["shirt", "t-shirt"],
                    "name": "Name of the piece",
+                   "color": ["blue", "teal"],
                    "description": "Detailed description of the piece",
-                   "tags": ["tag1", "tag2", "tag3"]
+                   "tags": ["tag1", "tag2", "tag3",...]
                  }},
                  ... (multiple pieces)
                ]
@@ -141,6 +97,7 @@ class OutfitPromptParser:
       ]
     }}
     """
+
     def __init__(self, api_key: str):
         """
         Initialize the parser with OpenAI API key.
@@ -150,61 +107,22 @@ class OutfitPromptParser:
         """
         self.client = openai.OpenAI(api_key=api_key)
         
-        # Get available data from database
-        self.inventory_summary = get_database_inventory_summary()
         
-        # Available clothing types, colors, and materials from database
-        self.clothing_types = self.inventory_summary.get('clothing_types', [])
-        self.colors = self.inventory_summary.get('colors', [])
-        self.materials_data = get_available_materials_from_database()
-        self.available_materials = self.materials_data.get('building_blocks', [])
+    
         
-        # Get detailed inventory by clothing type
-        self.detailed_inventory = get_detailed_inventory_by_clothing_type()
-        
-    def parse_outfit_prompt(self, prompt: str, max_items_per_category: int = 5, max_retries: int = 3) -> dict:
+    def parse_outfit_prompt(self, prompt: str, max_items_per_category: int = 1, max_retries: int = 3) -> dict:
         """
         Generate 3 outfit ideas, an outfit should contain at least one top and one bottom and no more than one of any category, expect the person to wear everything that you suggest in the outfit.
         Extract tags for each piece, and prepare for tag-based search.
         Also returns a top-level 'outfit_description' summarizing all ideas for API compatibility.
         Also returns 'outfit_variations' in the old format for server compatibility.
         """
-        self.inventory_summary = get_database_inventory_summary()
-        self.clothing_types = self.inventory_summary.get('clothing_types', [])
-        self.colors = self.inventory_summary.get('colors', [])
-        self.materials_data = get_available_materials_from_database()
-        self.available_materials = self.materials_data.get('building_blocks', [])
-        self.detailed_inventory = get_detailed_inventory_by_clothing_type()
-        detailed_inventory_text = self._format_detailed_inventory_for_ai()
 
-        def validate_outfit(outfit):
-            clothing_types = []
-            for piece in outfit.get('clothing_pieces', []):
-                ct = piece.get('clothing_type')
-                if isinstance(ct, list):
-                    clothing_types.extend([c.lower() for c in ct])
-                elif isinstance(ct, str):
-                    clothing_types.append(ct.lower())
-            clothing_types_set = set(clothing_types)
-            # Map clothing types to categories
-            categories = [CLOTHING_CATEGORY_MAP.get(ct, ct) for ct in clothing_types]
-            from collections import Counter
-            cat_counter = Counter(categories)
-            has_more_than_one_per_category = any(count > 1 for count in cat_counter.values())
-            # Check for at least one top and one bottom (shoes/socks not required)
-            TOPS = {k for k, v in CLOTHING_CATEGORY_MAP.items() if v == "top"}
-            BOTTOMS = {k for k, v in CLOTHING_CATEGORY_MAP.items() if v == "bottom"}
-            has_top = any(ct in TOPS for ct in clothing_types_set)
-            has_bottom = any(ct in BOTTOMS for ct in clothing_types_set)
-            if not (has_top and has_bottom):
-                return False, "Outfit must include at least one top and one bottom. Shoes and socks are optional."
-            if has_more_than_one_per_category:
-                return False, "Outfit contains more than one item from the same clothing category. Only one of each category is allowed (e.g., only one top, one bottom, one sweater, etc.)."
-            return True, ""
+
 
         for attempt in range(max_retries):
             try:
-                system_prompt = self._create_structured_outfit_prompt(detailed_inventory_text, max_items_per_category, attempt)
+                system_prompt = self._create_structured_outfit_prompt( max_items_per_category, attempt)
                 response = self.client.chat.completions.create(
                     model="gpt-4.1-nano",
                     messages=[
@@ -223,6 +141,7 @@ class OutfitPromptParser:
                     content = content[:-3]
                 content = content.strip()
                 parsed_response = json.loads(content)
+
                 # Validate structure
                 if 'outfit_ideas' not in parsed_response or not isinstance(parsed_response['outfit_ideas'], list):
                     raise ValueError("LLM response must contain 'outfit_ideas' as a list")
@@ -246,10 +165,6 @@ class OutfitPromptParser:
                         } for i, idea in enumerate(parsed_response['outfit_ideas'])
                     ]
                 # Validate each outfit
-                for idx, idea in enumerate(parsed_response['outfit_ideas']):
-                    valid, reason = validate_outfit(idea)
-                    if not valid:
-                        print(f"[WARNING] Outfit idea {idx+1} failed validation: {reason}")
                 return parsed_response
             except Exception as e:
                 if attempt == max_retries - 1:
@@ -257,36 +172,21 @@ class OutfitPromptParser:
                 continue
         raise ValueError(f"Failed to parse outfit prompt after {max_retries} attempts")
 
-    def _create_structured_outfit_prompt(self, detailed_inventory_text: str, max_items_per_category: int, attempt: int = 0) -> str:
+    def _create_structured_outfit_prompt(self, max_items_per_category: int, attempt: int = 0) -> str:
         """
         System prompt for generating 3 creative outfit ideas, each with multiple clothing pieces (organized by clothing type).
         """
-        # The prompt is now built from SYSTEM_PROMPT_TEMPLATE above
-        clothing_types_list = [
-            "t-shirt", "shirt", "blouse", "dress", "skirt", "jeans", "trousers", "shorts", "jacket", "coat", "sweater",
-            "hoodie", "suit", "blazer", "vest", "tank-top", "leggings", "jumpsuit", "romper", "cardigan", "polo",
-            "sweatpants", "tracksuit", "bodysuit", "overalls", "cape", "wrap", "scarf"
-        ]
-        clothing_categories = {
-            "top": ["t-shirt", "shirt", "blouse", "polo", "tank-top"],
-            "sweater": ["sweater", "hoodie", "cardigan"],
-            "outerwear": ["jacket", "coat", "blazer", "vest", "suit"],
-            "bottom": ["jeans", "trousers", "shorts", "skirt", "leggings", "jumpsuit", "romper", "sweatpants", "tracksuit", "overalls"],
-            "footwear": ["shoes", "sneakers", "boots", "loafers", "sandals", "slippers"],
-            "accessory": ["socks", "scarf", "cape", "wrap"]
-        }
-        category_text = "\n".join([
-            f"- {cat.capitalize()}: {', '.join(types)}" for cat, types in clothing_categories.items()
-        ])
+        # Build the tag lists for the prompt
+        descriptive_tags = ', '.join(DESCRIPTIVE_TAGS)
+        clothing_types = ', '.join(CLOTHING_TYPES)
+        colors = ', '.join(COLORS)
         prompt = self.SYSTEM_PROMPT_TEMPLATE.format(
-            category_text=category_text,
-            detailed_inventory_text=detailed_inventory_text,
-            clothing_types=", ".join(clothing_types_list),
-            colors=", ".join(self.colors),
-            materials=", ".join(self.available_materials)
+            descriptive_tags=descriptive_tags,
+            clothing_types=clothing_types,
+            colors=colors
         )
         if attempt > 0:
-            prompt += f"\n\nRETRY ATTEMPT {attempt + 1}: Be more creative and ensure 3 distinct ideas, each with multiple clothing pieces. Each piece must have a clothing_type from the CLOTHING TYPES list, as a string or a list. Each outfit must be a complete, wearable look as described above, and must not have more than one item from any clothing category."
+            prompt += f"\n\nRETRY ATTEMPT {attempt + 1}: Be more creative and ensure 3 distinct ideas. Each piece must have a clothing_type from the CLOTHING TYPES list, as a string or a list. Each outfit must be a complete, wearable look as described above, and must not have more than one item from any clothing category."
         return prompt
 
     def _extract_tags_from_description(self, description: str) -> list:
@@ -297,32 +197,9 @@ class OutfitPromptParser:
         tags = [tag for tag in ALLOWED_TAGS if tag in desc]
         return tags
 
-    def _format_detailed_inventory_for_ai(self) -> str:
-        """
-        Format the detailed inventory information for the AI model.
-        
-        Returns:
-            str: Formatted inventory information
-        """
-        if not self.detailed_inventory:
-            return "No detailed inventory available."
-        
-        formatted_lines = []
-        for clothing_type, data in self.detailed_inventory.items():
-            formatted_lines.append(f"\n{clothing_type.upper()}:")
-            formatted_lines.append(f"  Products: {data['product_count']}")
-            formatted_lines.append(f"  Materials: {', '.join(data['materials'])}")
-            formatted_lines.append(f"  Colors: {', '.join(data['colors'])}")
-            
-            if data['material_color_combinations']:
-                formatted_lines.append("  Valid Material-Color Combinations:")
-                for material, colors in data['material_color_combinations'].items():
-                    if colors:  # Only show materials that have colors
-                        formatted_lines.append(f"    {material}: {', '.join(colors)}")
-        
-        return "\n".join(formatted_lines)
+    
 
-    def search_outfit_from_prompt(self, prompt: str, top_results_per_item: int = 3, 
+    def search_outfit_from_prompt(self, prompt: str, top_results_per_item: int = 1, 
                                  sort_by_price: bool = True, price_order: str = 'asc') -> dict:
         """
         Parse the prompt, generate outfit ideas (each with multiple clothing pieces), and search for matching products for each piece.
@@ -353,20 +230,23 @@ class OutfitPromptParser:
                 print(f"[DEBUG]   clothing_type: {clothing_type}")
                 print(f"[DEBUG]   filters: {filters}")
                 print(f"[DEBUG]   tags: {tags}")
+                print(f"[DEBUG]   color: {piece.get('color')}")
                 products = search_database_products(
                     target_tags=tags,
                     max_items=top_results_per_item,
                     sort_by_price=sort_by_price,
                     price_order=price_order,
                     use_relevance_scoring=True,
-                    filters=filters
+                    clothing_type=clothing_type,
+                    color=piece.get('color')
                 )
                 idea_result['clothing_pieces'].append({
                     'clothing_type': clothing_type,
                     'piece_name': piece.get('name'),
                     'piece_description': piece.get('description'),
                     'tags': tags,
-                    'products': products
+                    'products': products,
+                    'color': piece.get('color')
                 })
             results.append(idea_result)
         return {
@@ -386,6 +266,7 @@ def pretty_print_search_results(results):
             print(f"    Type: {piece.get('clothing_type', '')}")
             print(f"    Description: {piece.get('piece_description', '')}")
             print(f"    Tags: {', '.join(piece.get('tags', []))}")
+            print(f"    Color: {', '.join(piece.get('color', []))}")
             if piece.get('products'):
                 print(f"    Products: {len(piece['products'])} found")
             else:
@@ -394,3 +275,12 @@ def pretty_print_search_results(results):
     print("=== END OF RESULTS ===\n")
 
 # Remove test_outfit_parser and any other test or dummy functions related to outfit search 
+
+if __name__ == "__main__":
+    parser = OutfitPromptParser(api_key=os.getenv("OPENAI_API_KEY"))
+    prompt = "sporty with a hoodie"
+    results = parser.search_outfit_from_prompt(prompt)
+    pretty_print_search_results(results)
+
+def refresh_product_cache():
+    load_all_products_from_supabase()

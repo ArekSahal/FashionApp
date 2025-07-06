@@ -1,4 +1,5 @@
-ALLOWED_TAGS = [
+# Descriptive tags: style, occasion, fit, season, subculture, material, functional/material attributes
+DESCRIPTIVE_TAGS = [
     # Style Aesthetic
     "casual", "formal", "business", "streetwear", "sporty", "vintage", "bohemian", "minimalist", "preppy", "punk",
     "goth", "artsy", "chic", "classic", "trendy", "elegant", "edgy", "athleisure", "retro", "y2k", "eclectic",
@@ -22,6 +23,13 @@ ALLOWED_TAGS = [
     "cotton", "linen", "wool", "leather", "denim", "silk", "polyester", "nylon", "velvet", "corduroy",
     "satin", "cashmere", "fleece", "suede", "lace", "tweed", "mesh", "knit", "jersey", "shearling",
 
+    # Functional / Material Attributes
+    "sustainable", "vegan", "waterproof", "breathable", "stretch", "reversible", "wrinkle-resistant", "quick-dry",
+    "insulated", "lightweight", "heavyweight", "UV-protection", "windproof", "thermal", "moisture-wicking",
+]
+
+# Clothing types: garments, footwear, accessories
+CLOTHING_TYPES = [
     # Clothing Type
     "t-shirt", "shirt", "blouse", "dress", "skirt", "jeans", "trousers", "shorts", "jacket", "coat", "sweater",
     "hoodie", "suit", "blazer", "vest", "tank-top", "leggings", "jumpsuit", "romper", "cardigan", "polo",
@@ -32,14 +40,13 @@ ALLOWED_TAGS = [
 
     # Accessories
     "belt", "hat", "beanie", "cap", "beret", "sunglasses", "bag", "tote", "clutch", "backpack", "jewelry", "watch",
+]
 
-    # Functional / Material Attributes
-    "sustainable", "vegan", "waterproof", "breathable", "stretch", "reversible", "wrinkle-resistant", "quick-dry",
-    "insulated", "lightweight", "heavyweight", "UV-protection", "windproof", "thermal", "moisture-wicking",
-
+# Colors: basic, neutrals, pastels, earth tones, metallics, patterns/color-like attributes
+COLORS = [
     # Colors - Basic
     "black", "white", "gray", "red", "blue", "green", "yellow", "orange", "purple", "pink", "brown",
-
+"""
     # Neutrals
     "beige", "cream", "ivory", "taupe", "tan", "charcoal", "off-white",
 
@@ -54,4 +61,5 @@ ALLOWED_TAGS = [
 
     # Patterns / Color-like Attributes
     "floral", "plaid", "striped", "polka-dot", "animal-print", "tie-dye", "camouflage", "graphic", "color-block", "ombre"
+    """
 ] 

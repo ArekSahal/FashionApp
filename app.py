@@ -101,18 +101,16 @@ def search_outfit():
         prompt = data.get('prompt')
         if not prompt:
             return jsonify({'success': False, 'error': 'No prompt provided'}), 400
-        top_results_per_item = data.get('top_results_per_item', 3)
+        top_results_per_item = data.get('top_results_per_item', 1)
         sort_by_price = data.get('sort_by_price', True)
         price_order = data.get('price_order', 'asc')
+        
         logger.info(f"📝 Searching outfits for prompt: '{prompt}'")
         if not parser:
             return jsonify({'success': False, 'error': 'Server not ready. Please try again later.'}), 503
         # Perform the outfit search
         search_results = parser.search_outfit_from_prompt(
-            prompt,
-            top_results_per_item=top_results_per_item,
-            sort_by_price=sort_by_price,
-            price_order=price_order
+            prompt
         )
         logger.info(f"🔎 Search results: {search_results}")
         logger.info(f"✅ Outfit search completed")
@@ -124,110 +122,13 @@ def search_outfit():
                 json.dump(search_results, f, ensure_ascii=False, indent=2)
         except Exception as file_err:
             logger.error(f"Failed to write search results to file: {file_err}")
-
-        # --- Transform to old format for backward compatibility ---
-        old_format_results = []
-        for idea in search_results.get('outfit_ideas', []):
-            all_tags = []
-            all_products = []
-            for piece in idea.get('clothing_pieces', []):
-                all_tags.extend(piece.get('tags', []))
-                all_products.extend(piece.get('products', []))
-            # Remove duplicates
-            all_tags = list(dict.fromkeys(all_tags))
-            # Optionally deduplicate products by id
-            seen_ids = set()
-            deduped_products = []
-            for prod in all_products:
-                prod_id = prod.get('id')
-                if prod_id is None or prod_id not in seen_ids:
-                    deduped_products.append(prod)
-                    if prod_id is not None:
-                        seen_ids.add(prod_id)
-            old_format_results.append({
-                'idea_name': idea.get('idea_name'),
-                'idea_description': idea.get('idea_description'),
-                'tags': all_tags,
-                'products': deduped_products
-            })
-        full_return = {'success': True, 'results': old_format_results}
-        # --- Write full return to file for debugging ---
-        try:
-            with open('logs/last_search_outfit_full_return.json', 'w', encoding='utf-8') as f:
-                json.dump(full_return, f, ensure_ascii=False, indent=2)
-        except Exception as file_err:
-            logger.error(f"Failed to write full return to file: {file_err}")
         # --- Sanitize before returning ---
-        return jsonify(sanitize_for_json(full_return))
+        return jsonify(sanitize_for_json(search_results))
     except Exception as e:
         logger.error(f"❌ ERROR: {str(e)}")
         logger.error(f"Traceback: {traceback.format_exc()}")
         logger.info("=" * 60)
         return jsonify(sanitize_for_json({'success': False, 'error': str(e)})), 500
-
-@app.route('/parse_prompt', methods=['POST'])
-def parse_prompt_only():
-    """
-    Parse a prompt without searching for products (for testing/debugging).
-    
-    Expected JSON payload:
-    {
-        "prompt": "old money summer vibe with deep autumn colors"
-    }
-    """
-    
-    logger.info("=" * 60)
-    logger.info("🧠 PROMPT PARSING REQUEST")
-    logger.info("=" * 60)
-    
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({
-                'success': False,
-                'error': 'No JSON data provided'
-            }), 400
-        
-        prompt = data.get('prompt')
-        if not prompt:
-            return jsonify({
-                'success': False,
-                'error': 'No prompt provided'
-            }), 400
-        
-        logger.info(f"📝 Parsing prompt: '{prompt}'")
-        
-        if not parser:
-            return jsonify({
-                'success': False,
-                'error': 'Server not ready. Please try again later.'
-            }), 503
-        
-        # Parse the prompt
-        outfit_response = parser.parse_outfit_prompt(prompt)
-        
-        logger.info(f"✅ Parsed successfully")
-        logger.info("=" * 60)
-        
-        return jsonify(sanitize_for_json({
-            'success': True,
-            'outfit_description': outfit_response['outfit_description'],
-            'outfit_variations': outfit_response['outfit_variations']
-        }))
-        
-    except Exception as e:
-        logger.error(f"❌ ERROR: {str(e)}")
-        logger.error(f"Traceback: {traceback.format_exc()}")
-        logger.info("=" * 60)
-        
-        return jsonify(sanitize_for_json({
-            'success': False,
-            'error': str(e)
-        })), 500
-
-@app.route('/search_outfit_dummy', methods=['POST'])
-def search_outfit_dummy():
-    return jsonify({'error': 'Outfit search is no longer supported.'}), 501
 
 @app.errorhandler(404)
 def not_found(error):
