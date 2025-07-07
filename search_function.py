@@ -97,6 +97,8 @@ def search_database_products(
     global PRODUCT_CACHE
     if PRODUCT_CACHE is None:
         load_all_products_from_supabase()
+    else:
+        load_all_products_from_supabase()
     # Use input parameters directly for clothing type and color
     clothing_type_tags = clothing_type if isinstance(clothing_type, list) else [clothing_type] if clothing_type else []
     color_tags = color if isinstance(color, list) else [color] if color else []
