@@ -41,8 +41,3 @@ COLORS = [
     # Patterns
     "floral", "striped", "plaid", "polka-dot",
 ]
-
-# Neckline types: common neckline styles
-NECKLINE_TYPES = [
-    "v-neck", "crew neck", "scoop neck", "turtleneck", "boat neck", "square neck", "halter", "off-shoulder", "sweetheart", "collared"
-] 

@@ -64,16 +64,18 @@ def generate_tags_with_llm(name: str, material: str, clothing_type: str, descrip
     try:
         # Prepare allowed tags
         allowed_tags = DESCRIPTIVE_TAGS + CLOTHING_TYPES + COLORS
+        allowed_tags_set = set(allowed_tags)  # For filtering
         allowed_tags_str = ", ".join(allowed_tags)
         # Prepare prompt
         prompt = (
             "You are a fashion and style expert. "
             "Given the following product information and two images (if available), generate a comma-separated list of ALL relevant fashion and style tags that could help categorize or style this item in outfits. "
-            "Only use tags from the following allowed list. Do not use any tags that are not in this list. "
+            "You MUST ONLY use tags from the following allowed list. Do not use any tags, synonyms, or variations that are not in this list. "
+            "If a tag is not in the allowed list, do NOT output it. "
             "Be as detailed and broad as possible, and assign ALL applicable tags from the allowed list. "
             "Do not repeat tags. "
             "You MUST always include at least one clothing type tag and at least one color tag from the allowed list. "
-            "Only output the tags, separated by commas.\n\n"
+            "Only output the tags, separated by commas. Do not output anything else.\n\n"
             f"Allowed tags: {allowed_tags_str}\n"
             f"Name: {name}\nMaterial: {material}\nClothing Type: {clothing_type}\nDescription: {description}\n"
         )
@@ -100,6 +102,8 @@ def generate_tags_with_llm(name: str, material: str, clothing_type: str, descrip
         )
         tags_text = response.choices[0].message.content
         tags = [tag.strip() for tag in tags_text.split(",") if tag.strip()]
+        # Filter tags to only allowed tags
+        tags = [tag for tag in tags if tag in allowed_tags_set]
         # Token usage
         usage = getattr(response, "usage", None)
         prompt_tokens = usage.prompt_tokens if usage else 0

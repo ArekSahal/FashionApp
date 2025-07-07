@@ -170,7 +170,7 @@ class SupabaseDB:
             logger.error(f"❌ Error retrieving {clothing_type} products: {str(e)}")
             return []
     
-    def get_all_products(self, limit: int = 1000) -> List[Dict]:
+    def get_all_products(self, limit: int = 10000) -> List[Dict]:
         """
         Get all products from the database that do not have tags (Tags is null or empty)
         
