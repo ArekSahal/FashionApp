@@ -1,65 +1,48 @@
-# Descriptive tags: style, occasion, fit, season, subculture, material, functional/material attributes
+# Descriptive tags: style, occasion, fit, season, material
 DESCRIPTIVE_TAGS = [
-    # Style Aesthetic
-    "casual", "formal", "business", "streetwear", "sporty", "vintage", "bohemian", "minimalist", "preppy", "punk",
-    "goth", "artsy", "chic", "classic", "trendy", "elegant", "edgy", "athleisure", "retro", "y2k", "eclectic",
-    "avant-garde", "cottagecore", "dark-academia", "light-academia", "coastal", "clean girl", "balletcore", "old money",
-
-    # Occasion
-    "work", "party", "wedding", "holiday", "beach", "evening", "everyday", "travel", "lounge", "festival",
-    "date-night", "interview", "gym", "brunch", "night-out", "graduation", "school", "airport", "errands",
-
-    # Fit & Silhouette
-    "slim-fit", "regular-fit", "oversized", "relaxed-fit", "tailored", "cropped", "high-waisted", "low-rise",
-    "fitted", "loose", "boxy", "bodycon", "flowy", "structured",
-
-    # Season
-    "summer", "winter", "spring", "autumn", "all-season", "transitional",
-
-    # Subculture
-    "skater", "grunge", "hippie", "mod", "rocker", "biker", "kawaii", "emo", "surfer", "gothic-lolita", "indie", "normcore",
+    # Style
+    "casual", "formal", "sporty", "classic", "trendy",
 
     # Material
-    "cotton", "linen", "wool", "leather", "denim", "silk", "polyester", "nylon", "velvet", "corduroy",
-    "satin", "cashmere", "fleece", "suede", "lace", "tweed", "mesh", "knit", "jersey", "shearling",
+    "cotton", "denim", "leather", "wool", "synthetic","linen",
 
-    # Functional / Material Attributes
-    "sustainable", "vegan", "waterproof", "breathable", "stretch", "reversible", "wrinkle-resistant", "quick-dry",
-    "insulated", "lightweight", "heavyweight", "UV-protection", "windproof", "thermal", "moisture-wicking",
+    # Occasion
+    "work", "party", "wedding", "holiday", "everyday",
+
+    # Fit
+    "slim", "regular", "oversized",
+
+    # Season
+    "summer", "winter", "spring", "autumn",
+
+    # Graphic presence
+    "graphic", "no-graphic",
+
+    # Neckline types
+    "v-neck", "crew neck", "scoop neck", "turtleneck", "boat neck", "square neck", "halter", "off-shoulder", "sweetheart", "collared",
 ]
 
 # Clothing types: garments, footwear, accessories
 CLOTHING_TYPES = [
-    # Clothing Type
-    "t-shirt", "shirt", "blouse", "dress", "skirt", "jeans", "trousers", "shorts", "jacket", "coat", "sweater",
-    "hoodie", "suit", "blazer", "vest", "tank-top", "leggings", "jumpsuit", "romper", "cardigan", "polo",
-    "sweatpants", "tracksuit", "bodysuit", "overalls", "cape", "wrap", "scarf",
+    # Garments
+    "t-shirt", "shirt", "dress", "skirt", "jeans", "trousers", "shorts", "jacket", "coat", "sweater",
 
     # Footwear
-    "sneakers", "boots", "heels", "loafers", "sandals", "flats", "oxfords", "slippers", "mules", "platforms",
+    "sneakers", "boots", "heels", "sandals",
 
     # Accessories
-    "belt", "hat", "beanie", "cap", "beret", "sunglasses", "bag", "tote", "clutch", "backpack", "jewelry", "watch",
+    "belt", "hat", "bag", "scarf", "watch",
 ]
 
-# Colors: basic, neutrals, pastels, earth tones, metallics, patterns/color-like attributes
+# Colors: basic colors and a few common patterns
 COLORS = [
-    # Colors - Basic
+    # Basic colors
     "black", "white", "gray", "red", "blue", "green", "yellow", "orange", "purple", "pink", "brown",
-"""
-    # Neutrals
-    "beige", "cream", "ivory", "taupe", "tan", "charcoal", "off-white",
+    # Patterns
+    "floral", "striped", "plaid", "polka-dot",
+]
 
-    # Pastels
-    "pastel-pink", "pastel-blue", "pastel-purple", "pastel-green", "pastel-yellow", "lavender", "mint", "baby-blue", "peach",
-
-    # Earth Tones
-    "olive", "khaki", "rust", "mustard", "terracotta", "forest-green", "sand", "camel", "mocha",
-
-    # Metallics
-    "gold", "silver", "bronze", "copper", "metallic", "rose-gold",
-
-    # Patterns / Color-like Attributes
-    "floral", "plaid", "striped", "polka-dot", "animal-print", "tie-dye", "camouflage", "graphic", "color-block", "ombre"
-    """
+# Neckline types: common neckline styles
+NECKLINE_TYPES = [
+    "v-neck", "crew neck", "scoop neck", "turtleneck", "boat neck", "square neck", "halter", "off-shoulder", "sweetheart", "collared"
 ] 

@@ -22,7 +22,8 @@ from supabase_db import SupabaseDB
 import logging
 import openai
 import base64
-from allowed_tags import ALLOWED_TAGS
+from allowed_tags import DESCRIPTIVE_TAGS, CLOTHING_TYPES, COLORS
+from tqdm import tqdm
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -61,14 +62,18 @@ def generate_tags_with_llm(name: str, material: str, clothing_type: str, descrip
         logger.error("OPENAI_API_KEY not set.")
         return [], 0, 0
     try:
+        # Prepare allowed tags
+        allowed_tags = DESCRIPTIVE_TAGS + CLOTHING_TYPES + COLORS
+        allowed_tags_str = ", ".join(allowed_tags)
         # Prepare prompt
-        allowed_tags_str = ", ".join(ALLOWED_TAGS)
         prompt = (
             "You are a fashion and style expert. "
-            "Given the following product information and two images (if available), generate a comma-separated list of all relevant fashion and style tags that could help categorize or style this item in outfits. "
+            "Given the following product information and two images (if available), generate a comma-separated list of ALL relevant fashion and style tags that could help categorize or style this item in outfits. "
             "Only use tags from the following allowed list. Do not use any tags that are not in this list. "
-            "Be as detailed and broad as possible, but only use the allowed tags. "
-            "Do not repeat tags. Only output the tags, separated by commas.\n\n"
+            "Be as detailed and broad as possible, and assign ALL applicable tags from the allowed list. "
+            "Do not repeat tags. "
+            "You MUST always include at least one clothing type tag and at least one color tag from the allowed list. "
+            "Only output the tags, separated by commas.\n\n"
             f"Allowed tags: {allowed_tags_str}\n"
             f"Name: {name}\nMaterial: {material}\nClothing Type: {clothing_type}\nDescription: {description}\n"
         )
@@ -107,12 +112,12 @@ def generate_tags_with_llm(name: str, material: str, clothing_type: str, descrip
 
 def main():
     db = SupabaseDB()
-    products = db.get_all_products(limit=1000)  # Adjust limit as needed
+    products = db.get_all_products(limit=5000)  # Adjust limit as needed
     logger.info(f"Fetched {len(products)} products from database.")
     updated_count = 0
     total_prompt_tokens = 0
     total_completion_tokens = 0
-    for product in products:
+    for product in tqdm(products, desc="Enriching tags", unit="product"):
         tags = product.get("Tags")
         if tags and isinstance(tags, list) and len(tags) > 0:
             continue  # Already has tags
@@ -148,7 +153,6 @@ def main():
         success = db.update_tags(original_url, tags)
         if success:
             updated_count += 1
-            logger.info(f"Updated tags for {original_url}: {tags}")
         else:
             logger.error(f"Failed to update tags for {original_url}")
     logger.info(f"Tag enrichment complete. Updated {updated_count} products.")
